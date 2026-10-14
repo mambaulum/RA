@@ -1,0 +1,214 @@
+{
+  /* =========================================================================
+     SI MAMBA — Firebase Realtime Database Rules (TAHAP 1)
+     =========================================================================
+
+     BACA INI DULU SEBELUM DEPLOY.
+
+     BATASAN MENDASAR: Aplikasi ini memakai Firebase Anonymous Auth untuk
+     SEMUA pengunjung (admin, guru, orang tua, maupun orang asing yang cuma
+     buka situsnya). Login PIN diverifikasi di BROWSER (JavaScript), bukan
+     oleh Firebase. Akibatnya Rules ini TIDAK BISA membedakan "admin yang
+     sudah login" dari "siapa pun yang baru buka tab baru" — keduanya sama
+     persis di mata Firebase: auth != null, generik, tanpa identitas.
+
+     Karena itu, Rules ini TIDAK bisa dan TIDAK berusaha meniru pembagian
+     peran (ROLE_PAGES) yang ada di sisi klien. Yang BISA dicapai Rules
+     tanpa autentikasi sungguhan per-orang, dan itulah fokus Tahap 1 ini:
+
+       1. Root (".read"/".write" di "/") DITUTUP TOTAL. Sebelumnya siapa pun
+          bisa mengunduh ATAU MENIMPA seluruh database dalam SATU request.
+          Sekarang akses harus lewat node yang disebutkan satu-satu di bawah.
+       2. Setiap node dipisah eksplisit (bukan otomatis ikut root) — supaya
+          kalau suatu saat perlu ada node yang benar-benar dikunci (nunggu
+          Tahap 2), itu bisa dilakukan per-node tanpa bongkar semua.
+       3. Node "attendance" (dipakai fitur "Ajukan Izin" Portal Orang Tua)
+          diberi pembatasan NYATA: hanya boleh MEMBUAT catatan yang belum
+          ada (tidak bisa menimpa absensi yang sudah dicatat guru/sekolah),
+          dan status yang ditulis lewat jalur "ortu" WAJIB 'I'. Ini beneran
+          membatasi kerusakan yang mungkin terjadi, TANPA butuh tahu siapa
+          yang menulis.
+
+     YANG TIDAK BISA ditutup Rules-saja (butuh Tahap 2 — Cloud Function +
+     autentikasi per-orang sungguhan, BUKAN Anonymous Auth):
+       - Node "users" (berisi pin_hash/pin_salt semua akun, dan `pin` polos
+         untuk akun lama yang belum sempat dimigrasi ke hash) TETAP HARUS
+         bisa dibaca publik, karena verifikasi PIN terjadi di browser
+         SEBELUM "login". Siapa pun tetap bisa mengunduh semua hash PIN
+         dan mencobanya offline selama arsitektur ini belum diubah.
+       - Rules tidak bisa memastikan siapa pun yang menulis ke node manapun
+         (termasuk attendance) benar-benar orang yang berhak — hanya bisa
+         membatasi BENTUK dan CAKUPAN tulisannya (lihat poin 3 di atas).
+       - Konfirmasi identitas orang tua di Portal (verifikasi PIN portal)
+         SAMA-SAMA cuma logika JavaScript, bukan yang dicek Firebase.
+
+     .validate SENGAJA DIBUAT MINIMAL di kebanyakan node (cuma dibatasi
+     TIPE data yang paling dasar, bukan bentuk lengkap). Ini pilihan
+     SADAR, bukan kelalaian — saya (asisten yang menyusun ini) tidak bisa
+     menguji Rules ini terhadap project Firebase sungguhan dari sandbox
+     ini, jadi saya hindari .validate ketat yang berisiko diam-diam
+     menolak tulisan sah yang bentuk persisnya belum saya lacak 100%
+     (rules yang salah = error "permission denied" yang membingungkan
+     bagi pengguna, tanpa pesan jelas kenapa).
+
+     CARA DEPLOY & UJI (WAJIB, jangan langsung ganti Rules produksi):
+       1. Firebase Console → Realtime Database → Rules → coba dulu isi ini
+          di tab "Simulator" dengan beberapa skenario read/write yang biasa
+          dipakai aplikasi (baca "attendance", tulis "attendance" via
+          "ajukan izin", baca "users" saat login, dst) SEBELUM klik Publish.
+       2. Kalau ada project Firebase staging/duplikat, uji di situ dulu.
+       3. Setelah Publish, LANGSUNG buka aplikasi dan coba: login, lihat
+          Dashboard, buka Portal Orang Tua & coba "Ajukan Izin", buka
+          Manajemen User, dan coba Backup (admin). Kalau ada yang gagal
+          dengan error "Permission denied", node itu kemungkinan perlu
+          ditambahkan/dilonggarkan di sini.
+     ========================================================================= */
+
+  "rules": {
+    // Root ditutup - tidak ada lagi db.ref().once('value') / db.ref().set()
+    // di root yang diizinkan. Backup & restore admin sudah diubah (lihat
+    // bacaSeluruhDatabase() di js/00-core.js) supaya tidak butuh ini lagi.
+    ".read": false,
+    ".write": false,
+
+    // === Akun & identitas ============================================
+    // pin_hash/pin_salt WAJIB bisa dibaca publik selama verifikasi PIN
+    // masih terjadi di browser (lihat catatan Tahap 2 di atas).
+    "users": {
+      ".read": true,
+      ".write": true
+    },
+
+    // === Data siswa ====================================================
+    "students": {
+      ".read": true,
+      ".write": true
+    },
+    "student_photos": {
+      ".read": true,
+      ".write": true
+    },
+    "alumni": {
+      ".read": true,
+      ".write": true
+    },
+    "promotion_history": {
+      ".read": true,
+      ".write": true
+    },
+
+    // === Data guru & absensi guru ======================================
+    "teachers": {
+      ".read": true,
+      ".write": true
+    },
+    "teacher_attendance": {
+      ".read": true,
+      ".write": true
+    },
+    "qr_sessions": {
+      ".read": true,
+      ".write": true
+    },
+
+    // === Absensi siswa — PEMBATASAN NYATA untuk jalur Portal Orang Tua =
+    "attendance": {
+      "$tanggal": {
+        "$studentId": {
+          // Berlaku untuk SET (buat/timpa penuh) maupun UPDATE (merge
+          // sebagian, mis. isi "keterangan" belakangan) - RTDB mengevaluasi
+          // .validate terhadap data HASIL AKHIR setelah operasi diterapkan.
+          ".validate": "newData.hasChildren(['status','tanggal']) && newData.child('status').isString() && newData.child('status').val().matches(/^(H|S|I|A)$/) && newData.child('tanggal').val() == $tanggal",
+
+          // - Kalau payload menandai by_role == 'ortu' (jalur "Ajukan Izin"
+          //   Portal Orang Tua): CUMA boleh kalau catatan hari itu BELUM ADA
+          //   sama sekali, dan status yang ditulis WAJIB 'I'. Tidak bisa
+          //   menimpa absensi yang sudah dicatat guru, tidak bisa mengaku
+          //   status lain.
+          // - Selain itu (guru/admin/dst lewat UI Absensi biasa): tetap
+          //   seperti sekarang (boleh buat & timpa - tidak diperketat,
+          //   supaya alur ubah status/isi keterangan yang sudah ada tidak
+          //   ikut rusak oleh perubahan ini).
+          ".write": "newData.child('by_role').val() == 'ortu' ? (!data.exists() && newData.child('status').val() == 'I') : true"
+        }
+      }
+    },
+
+    // === Akademik =======================================================
+    "grades": {
+      ".read": true,
+      ".write": true
+    },
+    "subjects": {
+      ".read": true,
+      ".write": true
+    },
+    "anekdot": {
+      ".read": true,
+      ".write": true
+    },
+    "journal": {
+      ".read": true,
+      ".write": true
+    },
+    "jam_pelajaran": {
+      ".read": true,
+      ".write": true
+    },
+    "kalender_akademik": {
+      ".read": true,
+      ".write": true
+    },
+
+    // === Keuangan & administrasi ========================================
+    "infaq": {
+      ".read": true,
+      ".write": true
+    },
+    "infaq_settings": {
+      ".read": true,
+      ".write": true
+    },
+    "jadwal": {
+      ".read": true,
+      ".write": true
+    },
+    "surat_riwayat": {
+      ".read": true,
+      ".write": true
+    },
+    "surat_counter": {
+      ".read": true,
+      ".write": true
+    },
+    "settings": {
+      ".read": true,
+      ".write": true
+    },
+    "logs": {
+      ".read": true,
+      ".write": true
+    },
+
+    // === Ditampilkan SEBELUM login (layar sambutan/login) ===============
+    "pengumuman": {
+      ".read": true,
+      ".write": true
+    },
+    "profil": {
+      ".read": true,
+      ".write": true
+    },
+    "tahun_ajaran": {
+      ".read": true,
+      ".write": true
+    }
+
+    // Kalau ke depan ada node Firebase BARU yang belum tercantum di sini,
+    // node itu OTOMATIS TERTUTUP (root ".read"/".write" sudah false, dan
+    // node yang tidak disebut tidak mewarisi izin apa pun). Tambahkan di
+    // sini secara eksplisit begitu ada modul baru yang memakainya - jangan
+    // lupa juga tambahkan namanya ke SEMUA_NODE_DATABASE di js/00-core.js
+    // supaya ikut ter-backup/restore.
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "SI MAMBA - RA Mambaul Ulum",
+  "short_name": "SI MAMBA RA",
+  "description": "Sistem Informasi Manajemen Terpadu RA Mambaul Ulum",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#0f3b2c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

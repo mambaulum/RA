@@ -1,0 +1,1591 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SI MAMBA - RA Mambaul Ulum</title>
+
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f3b2c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SI MAMBA RA" />
+  <link rel="icon" type="image/png" href="icons/icon-192x192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
+
+  <!-- Preconnect ke CDN yang dipakai (Firebase, jsDelivr, Cloudflare CDN,
+       Tailwind CDN) supaya koneksi DNS/TLS-nya sudah siap lebih awal,
+       mempercepat loading pertama kali. -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.sheetjs.com" crossorigin />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Registrasi Service Worker: supaya app shell bisa dimuat saat offline -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            // Cek versi baru yang sedang di-install di background
+            reg.addEventListener('updatefound', () => {
+              const workerBaru = reg.installing;
+              if (!workerBaru) return;
+              workerBaru.addEventListener('statechange', () => {
+                // 'installed' + sudah ada controller = ini pembaruan (bukan install pertama kali)
+                if (workerBaru.state === 'installed' && navigator.serviceWorker.controller) {
+                  tampilkanToastUpdate(workerBaru);
+                }
+              });
+            });
+          })
+          .catch(err => console.warn('SW registration gagal:', err));
+
+        // Setelah SW baru mengambil alih (setelah user klik Refresh),
+        // reload halaman sekali supaya file terbaru benar-benar terpakai.
+        let sudahRefresh = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (sudahRefresh) return;
+          sudahRefresh = true;
+          window.location.reload();
+        });
+      });
+    }
+
+    function tampilkanToastUpdate(workerBaru) {
+      if (document.getElementById('updateToastSW')) return; // jangan dobel
+      const toast = document.createElement('div');
+      toast.id = 'updateToastSW';
+      toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);' +
+        'background:#0f3b2c;color:#fff;padding:12px 16px;border-radius:14px;' +
+        'box-shadow:0 8px 24px rgba(0,0,0,0.25);z-index:999999;display:flex;' +
+        'align-items:center;gap:12px;font-family:Inter,sans-serif;font-size:13px;max-width:92vw;';
+      toast.innerHTML =
+        '<span>🔄 Versi baru tersedia</span>' +
+        '<button id="btnRefreshSW" style="background:#a7f3d0;color:#0f3b2c;border:none;' +
+        'padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh</button>' +
+        '<button id="btnTutupToastSW" style="background:transparent;color:rgba(255,255,255,0.6);' +
+        'border:none;font-size:16px;cursor:pointer;padding:0 4px;">✕</button>';
+      document.body.appendChild(toast);
+
+      document.getElementById('btnRefreshSW').addEventListener('click', () => {
+        workerBaru.postMessage('SKIP_WAITING');
+        toast.remove();
+      });
+      document.getElementById('btnTutupToastSW').addEventListener('click', () => {
+        toast.remove(); // pengguna bisa tunda; toast muncul lagi di load berikutnya kalau belum update
+      });
+    }
+  </script>
+
+  <!-- DEBUG CONSOLE (sementara, untuk troubleshooting) -->
+  <!-- Aktif kalau URL punya ?debug=1 ATAU sebelumnya pernah diaktifkan di HP -->
+  <!-- ini (tersimpan di localStorage). Console mini ini dibuat manual di sini -->
+  <!-- (tidak bergantung CDN luar) supaya tetap jalan walau jaringan HP -->
+  <!-- memblokir domain CDN pihak ketiga. Hapus blok ini kalau sudah tidak -->
+  <!-- dibutuhkan lagi. -->
+  <script>
+    (function() {
+      // ------------------------------------------------------------
+      // Perbaikan keamanan: dulu sekali diaktifkan (?debug=1), panel ini
+      // nempel PERMANEN di localStorage HP tersebut selamanya, dan siapa
+      // pun yang pegang HP itu setelahnya bisa lihat log internal aplikasi.
+      // Sekarang: (1) otomatis kedaluwarsa 24 jam setelah diaktifkan, dan
+      // (2) ada tombol "🗑️ Matikan Permanen" di panelnya sendiri.
+      // ------------------------------------------------------------
+      const KADALUWARSA_MS = 24 * 60 * 60 * 1000; // 24 jam
+      const KEY = 'simamba_debug_console';
+
+      function bacaStatusTersimpan() {
+        try {
+          const raw = localStorage.getItem(KEY);
+          if (!raw) return null;
+          const data = JSON.parse(raw);
+          if (!data || !data.ts || (Date.now() - data.ts) > KADALUWARSA_MS) {
+            localStorage.removeItem(KEY); // sudah kedaluwarsa, bersihkan
+            return null;
+          }
+          return data;
+        } catch (e) { localStorage.removeItem(KEY); return null; }
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const aktifkanDebug = params.get('debug') === '1';
+      if (aktifkanDebug) localStorage.setItem(KEY, JSON.stringify({ ts: Date.now() }));
+      if (!(aktifkanDebug || bacaStatusTersimpan())) return;
+
+      const bufferLog = [];
+      let box = null;
+
+      function warnaUntuk(tipe) {
+        return tipe === 'error' ? '#f87171' : tipe === 'warn' ? '#fbbf24' : '#4ade80';
+      }
+
+      function tampilkanBaris(tipe, teks) {
+        const line = document.createElement('div');
+        line.style.cssText = 'border-bottom:1px solid #333;padding:3px 0;color:' + warnaUntuk(tipe);
+        line.textContent = teks;
+        box.appendChild(line);
+        box.scrollTop = box.scrollHeight;
+      }
+
+      function tulisLog(tipe, args) {
+        const teks = '[' + tipe.toUpperCase() + '] ' + args.map(a => {
+          try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch (e) { return String(a); }
+        }).join(' ');
+        if (box) { tampilkanBaris(tipe, teks); } else { bufferLog.push({ tipe, teks }); }
+      }
+
+      ['log', 'warn', 'error'].forEach(tipe => {
+        const asli = console[tipe];
+        console[tipe] = function(...args) { asli.apply(console, args); tulisLog(tipe, args); };
+      });
+
+      window.addEventListener('error', e => {
+        tulisLog('error', ['Uncaught error:', e.message, 'di', (e.filename || '?') + ':' + e.lineno]);
+      });
+
+      window.addEventListener('DOMContentLoaded', function() {
+        box = document.createElement('div');
+        box.id = 'debugConsoleBox';
+        box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:45vh;overflow-y:auto;background:rgba(0,0,0,0.94);color:#4ade80;font-family:monospace;font-size:11px;padding:10px;padding-bottom:56px;z-index:999999;white-space:pre-wrap;word-break:break-all;display:none;';
+        document.body.appendChild(box);
+
+        const matikanBtn = document.createElement('button');
+        matikanBtn.textContent = '🗑️ Matikan Permanen';
+        matikanBtn.style.cssText = 'position:fixed;bottom:0;left:0;right:0;padding:10px;background:#dc2626;color:#fff;border:none;font-size:12px;font-family:monospace;z-index:999999;display:none;';
+        matikanBtn.onclick = () => {
+          localStorage.removeItem(KEY);
+          box.style.display = 'none';
+          matikanBtn.style.display = 'none';
+          toggleBtn.remove();
+        };
+        document.body.appendChild(matikanBtn);
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = '🐞';
+        toggleBtn.style.cssText = 'position:fixed;bottom:16px;right:16px;width:48px;height:48px;border-radius:50%;background:#dc2626;color:#fff;font-size:22px;border:none;z-index:1000000;box-shadow:0 2px 10px rgba(0,0,0,0.5);';
+        toggleBtn.onclick = () => {
+          const tampil = box.style.display === 'none';
+          box.style.display = tampil ? 'block' : 'none';
+          matikanBtn.style.display = tampil ? 'block' : 'none';
+        };
+        document.body.appendChild(toggleBtn);
+
+        bufferLog.forEach(item => tampilkanBaris(item.tipe, item.teks));
+        bufferLog.length = 0;
+      });
+    })();
+  </script>
+
+  <!-- Font Inter (stylesheet, tetap di head). Library JS dipindah ke akhir <body>
+       supaya layar awal (splash) bisa tampil sebelum ~1,5 MB script selesai diunduh. -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+
+  <!-- LAYAR AWAL (splash): tampil langsung, dihapus initApp() lewat hideBootSplash().
+       Kalau boot macet (koneksi lambat / auth gagal), pengguna dapat pesan + tombol muat ulang,
+       bukan layar kosong. -->
+  <div id="bootSplash" role="status" aria-live="polite" style="position:fixed;inset:0;z-index:30000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#0f3b2c 0%,#1a5c3e 100%);color:#fff;font-family:Inter,system-ui,sans-serif;text-align:center;padding:24px;">
+    <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:44px;line-height:1;">
+      <img src="logo/logo-lembaga.png" alt="Logo lembaga" style="width:100%;height:100%;object-fit:contain;" onerror="this.onerror=null; var p=this.parentElement; p.innerHTML='🧸';">
+    </div>
+    <div style="font-weight:800;font-size:22px;">SI <span style="color:#a7f3d0;">MAMBA</span></div>
+    <div class="loading-spinner" style="border-color:rgba(255,255,255,0.25);border-top-color:#a7f3d0;"></div>
+    <div id="bootSplashText" style="font-size:13px;opacity:0.85;max-width:320px;">Menyiapkan aplikasi…</div>
+    <button id="bootSplashReload" type="button" onclick="location.reload()" style="display:none;margin-top:4px;padding:10px 20px;border:none;border-radius:10px;background:#a7f3d0;color:#0f3b2c;font-weight:700;font-size:14px;cursor:pointer;">Muat ulang</button>
+  </div>
+  <script>
+    (function () {
+      var t1 = setTimeout(function () {
+        var el = document.getElementById('bootSplashText');
+        if (el) el.textContent = 'Koneksi terasa lambat, mohon tunggu sebentar…';
+      }, 8000);
+      var t2 = setTimeout(function () {
+        var b = document.getElementById('bootSplashReload');
+        if (b) b.style.display = 'inline-block';
+      }, 20000);
+      window.hideBootSplash = function () {
+        clearTimeout(t1); clearTimeout(t2);
+        var sp = document.getElementById('bootSplash');
+        if (sp) sp.remove();
+      };
+      window.showBootError = function (pesan) {
+        clearTimeout(t1); clearTimeout(t2);
+        var el = document.getElementById('bootSplashText');
+        if (el) el.textContent = pesan;
+        var b = document.getElementById('bootSplashReload');
+        if (b) b.style.display = 'inline-block';
+        var sp = document.querySelector('#bootSplash .loading-spinner');
+        if (sp) sp.style.display = 'none';
+      };
+    })();
+  </script>
+
+  <!-- PROGRESS BAR SAAT PINDAH HALAMAN -->
+  <div id="pageProgressBar"></div>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div style="text-align:center;background:white;padding:32px 48px;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,0.1);">
+      <div class="loading-spinner" style="width:48px;height:48px;border-width:5px;"></div>
+      <p style="margin-top:16px;font-weight:600;" id="loadingText">Memuat data...</p>
+    </div>
+  </div>
+
+  <!-- SIDEBAR OVERLAY -->
+  <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- ============================================================
+       QR CHECK-IN OVERLAY (dibuka lewat scan QR, tanpa perlu login)
+  ============================================================ -->
+  <div id="qrCheckinOverlay" style="display:none;position:fixed;inset:0;z-index:20000;background:linear-gradient(135deg,#0f3b2c 0%,#1a5c3e 100%);overflow-y:auto;">
+    <div style="max-width:420px;margin:0 auto;padding:32px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center;">
+      <div style="text-align:center;margin-bottom:20px;color:#fff;">
+        <div style="font-size:40px;">🧸</div>
+        <div style="font-size:20px;font-weight:800;">SI MAMBA <span style="color:#a7f3d0;">RA</span></div>
+        <div style="font-size:12px;opacity:0.7;">Absen Guru via QR</div>
+      </div>
+      <div style="background:#fff;border-radius:20px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);" id="qrCheckinBox">
+        <div style="text-align:center;padding:20px;color:#6b7280;">Memuat...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       APP WRAPPER
+  ============================================================ -->
+  <div id="appPage" style="display:none;">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;justify-content:center;margin-bottom:8px;">
+          <img src="logo/logo-lembaga.png" alt="Logo RA Mambaul Ulum" class="logo-img" id="sidebarLogo" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width:80px;height:80px;border-radius:16px;background:linear-gradient(135deg,#0f3b2c,#1a5c3e);display:flex;align-items:center;justify-content:center;font-size:36px;border:3px solid rgba(255,255,255,0.2);color:white;font-weight:700;\'>📚</div>'">
+        </div>
+        <div class="logo">🧸 SI <span>MAMBA</span></div>
+        <div class="sub">RA Mambaul Ulum</div>
+      </div>
+      <nav class="sidebar-menu">
+        <div class="menu-label">Menu Utama</div>
+        <div class="menu-item active" data-page="dashboard"><span class="icon"><i data-lucide="layout-dashboard"></i></span> Dashboard</div>
+        <div class="menu-item" data-page="profil"><span class="icon"><i data-lucide="landmark"></i></span> Profil RA</div>
+        <div class="menu-item" data-page="students"><span class="icon"><i data-lucide="users"></i></span> Data Siswa</div>
+        <div class="menu-item" data-page="buku-induk"><span class="icon"><i data-lucide="book-open"></i></span> Buku Induk</div>
+        <div class="menu-item" data-page="subjects"><span class="icon"><i data-lucide="layers"></i></span> Aspek Perkembangan</div>
+        <div class="menu-item" data-page="attendance"><span class="icon"><i data-lucide="calendar-check"></i></span> Absensi</div>
+        <div class="menu-item" data-page="infaq"><span class="icon"><i data-lucide="wallet"></i></span> Infaq</div>
+        <div class="menu-item" data-page="grades"><span class="icon"><i data-lucide="clipboard-list"></i></span> Nilai</div>
+        <div class="menu-item" data-page="anekdot"><span class="icon"><i data-lucide="sticky-note"></i></span> Catatan Anekdot</div>
+        <div class="menu-item" data-page="rapor-narasi"><span class="icon"><i data-lucide="scroll-text"></i></span> Rapor Narasi</div>
+        <div class="menu-item" data-page="journal"><span class="icon"><i data-lucide="notebook-pen"></i></span> Jurnal Mengajar</div>
+        <div class="menu-item" data-page="teacher-attendance"><span class="icon"><i data-lucide="camera"></i></span> Absen Guru</div>
+        <div class="menu-item" data-page="riwayat-absen-saya"><span class="icon"><i data-lucide="history"></i></span> Riwayat Absen Saya</div>
+        <div class="menu-item" data-page="rekap"><span class="icon"><i data-lucide="clipboard-list"></i></span> Rekap</div>
+        <div class="menu-item" data-page="rekap-nilai"><span class="icon"><i data-lucide="bar-chart-3"></i></span> Rekap Nilai</div>
+        <div class="menu-item" data-page="honor"><span class="icon"><i data-lucide="banknote"></i></span> Honor</div>
+        <div class="menu-item" data-page="surat"><span class="icon"><i data-lucide="file-text"></i></span> Surat & Ijin</div>
+        <div class="menu-item" data-page="jadwal"><span class="icon"><i data-lucide="calendar-days"></i></span> Jadwal</div>
+        <div class="menu-item" data-page="kalender-akademik"><span class="icon"><i data-lucide="calendar"></i></span> Kalender Akademik</div>
+        <div class="menu-item" data-page="promotion"><span class="icon"><i data-lucide="trending-up"></i></span> Kenaikan Kelas</div>
+        <div class="menu-item" data-page="alumni"><span class="icon"><i data-lucide="graduation-cap"></i></span> Alumni</div>
+        <div class="menu-item" data-page="setting-jam"><span class="icon"><i data-lucide="clock"></i></span> Setting Jam</div>
+        <div class="menu-item" data-page="laporan"><span class="icon"><i data-lucide="file-bar-chart"></i></span> Laporan</div>
+        <div class="menu-item" data-page="user-management"><span class="icon"><i data-lucide="users"></i></span> Manajemen User</div>
+        <div class="menu-item" data-page="admin"><span class="icon"><i data-lucide="settings"></i></span> Admin</div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="avatar" id="sidebarAvatar">👤</div>
+          <div>
+            <div class="user-name" id="sidebarName">-</div>
+            <div class="user-role" id="sidebarRole">-</div>
+          </div>
+        </div>
+        <button class="ganti-pin-btn" onclick="showGantiPinModal()"><i data-lucide="key" style="width:14px;height:14px;"></i> Ganti PIN</button>
+        <button class="logout-btn" onclick="logout()"><i data-lucide="log-out" style="width:14px;height:14px;"></i> Keluar</button>
+        <div style="margin-top:8px;font-size:10px;opacity:0.3;text-align:center;">v3.1-RA • © 2026</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent">
+
+      <!-- TOP BAR -->
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="hamburger" onclick="toggleSidebar()" aria-label="Buka menu navigasi"><i data-lucide="menu"></i></button>
+          <div>
+            <div class="page-title" id="pageTitle">Dashboard <small>Ringkasan Hari Ini</small></div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select id="tahunAjaranSelect" class="field" style="padding:4px 8px;font-size:12px;width:auto;min-width:100px;border-radius:8px;" onchange="gantiTahunAjaran()">
+            <option value="2024/2025">2024/2025</option>
+            <option value="2025/2026" selected>2025/2026</option>
+            <option value="2026/2027">2026/2027</option>
+            <option value="2027/2028">2027/2028</option>
+          </select>
+          <span id="firebaseStatus" class="status-badge">⏳ Mengecek...</span>
+          <span id="offlineQueueBadge" class="status-badge" style="display:none;background:#fef3c7;color:#92400e;cursor:pointer;" onclick="flushOfflineQueue()" title="Klik untuk coba kirim ulang sekarang">⏳ 0 belum tersinkron</span>
+          <button id="installBtn" onclick="installApp()"><i data-lucide="smartphone" style="width:14px;height:14px;"></i> Install</button>
+          <button class="dark-toggle" onclick="toggleDarkMode()" aria-label="Ganti mode gelap/terang"><i data-lucide="moon"></i></button>
+          <div style="display:flex;gap:4px;">
+            <button class="btn btn-soft" style="padding:6px 10px;font-size:14px;" onclick="refreshAllData()" title="Refresh Data" aria-label="Refresh Data"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i></button>
+            <button class="btn btn-soft" style="padding:6px 10px;font-size:14px;" onclick="showDebug()" title="Debug" aria-label="Debug"><i data-lucide="bug" style="width:14px;height:14px;"></i></button>
+            <button class="btn btn-success" style="padding:6px 10px;font-size:14px;" onclick="manualBackup()" id="btnBackupTopbar" title="Backup (khusus admin)" aria-label="Backup"><i data-lucide="save" style="width:14px;height:14px;"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: DASHBOARD
+      ============================================================ -->
+      <div id="page-dashboard" class="page-content">
+        <div class="card">
+          <div class="dashboard-header">
+            <div class="dashboard-logo">
+              <img src="logo/logo-lembaga.png" alt="Logo RA Mambaul Ulum" class="dashboard-logo-img" id="dashboardLogo" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width:80px;height:80px;border-radius:16px;background:linear-gradient(135deg,#0f3b2c,#1a5c3e);display:flex;align-items:center;justify-content:center;font-size:36px;border:3px solid #0f3b2c;color:white;font-weight:700;\'>📚</div>'">
+            </div>
+            <div class="dashboard-title">
+              <h2>RA Mambaul Ulum</h2>
+              <p class="subtitle">Sistem Informasi Manajemen Terpadu</p>
+            </div>
+          </div>
+
+          <div class="marquee-container">
+            <div class="marquee-content" id="marqueeContent">
+              <div class="marquee-empty">📢 Belum ada pengumuman</div>
+            </div>
+          </div>
+
+          <div id="dashboardScopeNote" style="display:none;background:#eff6ff;color:#1e40af;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:12px;"></div>
+          <div class="status-bar">
+            <div class="status-item"><span class="status-icon">✅</span><div class="status-info"><div class="status-label">Hadir Hari Ini</div><div class="status-value" id="statusHadir">0</div></div><span class="status-dot green"></span></div>
+            <div class="status-item"><span class="status-icon">🤒</span><div class="status-info"><div class="status-label">Sakit</div><div class="status-value" id="statusSakit">0</div></div><span class="status-dot yellow"></span></div>
+            <div class="status-item"><span class="status-icon">📝</span><div class="status-info"><div class="status-label">Izin</div><div class="status-value" id="statusIzin">0</div></div><span class="status-dot gray"></span></div>
+            <div class="status-item"><span class="status-icon">❌</span><div class="status-info"><div class="status-label">Alpa</div><div class="status-value" id="statusAlpa">0</div></div><span class="status-dot red"></span></div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="stat-card" style="background:linear-gradient(135deg,#059669,#047857);"><div class="stat-label">Total Siswa</div><div class="stat-number" id="statTotalSiswa">0</div></div>
+            <div class="stat-card" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);"><div class="stat-label">Hadir Hari Ini</div><div class="stat-number" id="statHadir">0</div></div>
+            <div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);"><div class="stat-label">% Kehadiran</div><div class="stat-number" id="statPersenHadir">0%</div></div>
+            <div class="stat-card" style="background:linear-gradient(135deg,#d97706,#b45309);"><div class="stat-label">Total Guru</div><div class="stat-number" id="statGuru">0</div></div>
+          </div>
+
+          <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-success" id="btnDashboardAbsenMandiri" style="flex:1;min-width:200px;justify-content:center;padding:14px;font-size:15px;display:none;" onclick="showAbsenMandiriModal()">
+              📱 Absen QR Hari Ini
+            </button>
+            <button class="btn btn-warning" id="btnDashboardQRGuru" style="flex:1;min-width:200px;justify-content:center;padding:14px;font-size:15px;display:none;" onclick="openQRFromDashboard()">
+              📱 Tampilkan QR Absen
+            </button>
+          </div>
+
+          <div style="margin-top:20px;">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">📅 Jadwal Hari Ini</h3>
+            <div id="dashboardJadwalList"><div style="text-align:center;padding:12px;color:#6b7280;">Belum ada jadwal</div></div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">📊 Grafik Kehadiran Siswa (30 Hari Terakhir)</h3>
+            <div style="background:#f8fafc;border-radius:12px;padding:12px;height:260px;">
+              <canvas id="chartKehadiranBulanan" height="220"></canvas>
+            </div>
+          </div>
+
+          <div id="dashboardKepsekSection" style="display:none;margin-top:28px;border-top:2px solid #e5e7eb;padding-top:20px;">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;">🧭 Monitoring Kepala Sekolah</h3>
+            <p style="font-size:12px;color:#6b7280;margin-bottom:14px;">Ringkasan hal-hal yang perlu dipantau bulan ini.</p>
+
+            <div class="dashboard-grid" style="margin-bottom:16px;">
+              <div class="stat-card" style="background:linear-gradient(135deg,#0f766e,#115e59);"><div class="stat-label">Guru Hadir Hari Ini</div><div class="stat-number" id="kepsekGuruHadirHariIni">-</div></div>
+              <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#b91c1c);"><div class="stat-label">Guru Telat Bulan Ini</div><div class="stat-number" id="kepsekGuruTelatBulanIni">0</div></div>
+              <div class="stat-card" style="background:linear-gradient(135deg,#0891b2,#0e7490);"><div class="stat-label">Infaq Bulan Ini</div><div class="stat-number" id="kepsekInfaqBulanIni" style="font-size:16px;">Rp 0</div></div>
+              <div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);"><div class="stat-label">% Kehadiran Siswa Bln Ini</div><div class="stat-number" id="kepsekPersenSiswaBulanIni">0%</div></div>
+            </div>
+
+            <div id="kepsekGuruPerhatianBox" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;">
+              <p style="font-size:12px;font-weight:600;color:#991b1b;margin-bottom:6px;">⚠️ Guru Perlu Perhatian (paling sering telat bulan ini)</p>
+              <div id="kepsekGuruPerhatianList" style="font-size:13px;color:#7f1d1d;"></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:16px;">
+              <div style="background:#f8fafc;border-radius:12px;padding:12px;">
+                <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">🕐 Tren Telat Guru (6 Bulan Terakhir)</p>
+                <div style="height:200px;"><canvas id="chartTelatGuruBulanan"></canvas></div>
+              </div>
+              <div style="background:#f8fafc;border-radius:12px;padding:12px;">
+                <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">💵 Tren Infaq (6 Bulan Terakhir)</p>
+                <div style="height:200px;"><canvas id="chartInfaqBulananKepsek"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: PROFIL RA
+      ============================================================ -->
+      <div id="page-profil" class="page-content" style="display:none;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <h3 style="font-size:18px;font-weight:700;">🏫 Profil RA Mambaul Ulum</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="editProfil()" id="btnEditProfil" style="display:none;">✏️ Edit Profil</button>
+              <button class="btn btn-warning" onclick="editTahunAjaran()" id="btnEditTahun" style="display:none;">📅 Edit Tahun Ajaran</button>
+            </div>
+          </div>
+
+          <div id="profilPreview">
+            <div style="text-align:center;padding:20px 0;">
+              <img src="logo/logo-lembaga.png" alt="Logo RA Mambaul Ulum" 
+                   style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid #0f3b2c;padding:4px;background:white;margin-bottom:12px;"
+                   onerror="this.onerror=null; this.outerHTML='<div style=\'font-size:80px;margin-bottom:12px;\'>🏫</div>'">
+              <h2 style="font-size:28px;font-weight:800;color:#0f3b2c;" id="profilNama">RA Mambaul Ulum</h2>
+              <p style="color:#6b7280;font-size:14px;" id="profilStatus">Status: Aktif</p>
+            </div>
+
+            <div style="background:linear-gradient(135deg,#1a3a5c,#2d6a9f);border-radius:12px;padding:16px;margin-bottom:16px;color:white;">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div>
+                  <div style="font-size:12px;opacity:0.7;text-transform:uppercase;letter-spacing:1px;">📅 Tahun Pelajaran Aktif</div>
+                  <div style="font-size:20px;font-weight:700;" id="profilTahunAjaran">2025/2026</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:12px;opacity:0.7;text-transform:uppercase;letter-spacing:1px;">📖 Semester Aktif</div>
+                  <div style="font-size:20px;font-weight:700;" id="profilSemesterAktif">Semester 1 (Ganjil)</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:12px;opacity:0.7;">
+                <span>📅 Periode: <span id="profilPeriodeAwal">2025-07-01</span> s/d <span id="profilPeriodeAkhir">2026-06-30</span></span>
+                <span>🔄 Status: <span id="profilStatusSemester" style="color:#a7f3d0;">Aktif</span></span>
+              </div>
+              <div style="margin-top:8px;text-align:right;">
+                <button class="btn btn-soft" style="background:rgba(255,255,255,0.15);color:white;padding:4px 12px;font-size:11px;min-height:30px;border:none;display:none;" onclick="editTahunAjaran()" id="btnEditTahunAjaran">
+                  ✏️ Ubah Tahun Ajaran
+                </button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div style="background:#f8fafc;border-radius:12px;padding:16px;border:1px solid #e5e7eb;">
+                <div style="font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;">📌 Identitas</div>
+                <div style="margin-top:8px;">
+                  <p><strong>NPSN:</strong> <span id="profilNPSN">12345678</span></p>
+                  <p><strong>NSM:</strong> <span id="profilNSM">-</span></p>
+                  <p><strong>Nama:</strong> <span id="profilNamaLengkap">RA Mambaul Ulum</span></p>
+                  <p><strong>Nama Yayasan:</strong> <span id="profilYayasan">-</span></p>
+                  <p><strong>Jenjang:</strong> <span id="profilJenjang">RA (Raudhatul Athfal)</span></p>
+                  <p><strong>Status:</strong> <span id="profilStatusLembaga">Terakreditasi A</span></p>
+                </div>
+              </div>
+
+              <div style="background:#f8fafc;border-radius:12px;padding:16px;border:1px solid #e5e7eb;">
+                <div style="font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;">📞 Kontak & Alamat</div>
+                <div style="margin-top:8px;">
+                  <p><strong>Alamat:</strong> <span id="profilAlamat">Jl. Pendidikan No. 123, Kota Pendidikan</span></p>
+                  <p><strong>Desa/Kelurahan:</strong> <span id="profilDesa">-</span></p>
+                  <p><strong>Kecamatan:</strong> <span id="profilKecamatan">-</span></p>
+                  <p><strong>Kabupaten/Kota:</strong> <span id="profilKabupaten">-</span></p>
+                  <p><strong>Provinsi:</strong> <span id="profilProvinsi">-</span></p>
+                  <p><strong>Kode Pos:</strong> <span id="profilKodepos">12345</span></p>
+                  <p><strong>Telepon:</strong> <span id="profilTelp">(021) 1234567</span></p>
+                  <p><strong>Email:</strong> <span id="profilEmail">ra.mambaululum@gmail.com</span></p>
+                </div>
+              </div>
+
+              <div style="background:#f8fafc;border-radius:12px;padding:16px;border:1px solid #e5e7eb;grid-column:span 2;">
+                <div style="font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;">👥 Pengurus & Struktur</div>
+                <div style="margin-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+                  <div>
+                    <p style="font-size:11px;color:#9ca3af;font-weight:600;">KEPALA SEKOLAH</p>
+                    <p><strong>Nama:</strong> <span id="profilKepsek">Hj. Siti Aminah, S.Pd.I</span></p>
+                    <p><strong>NIP:</strong> <span id="profilKepsekNip">196512342021012001</span></p>
+                  </div>
+                  <div>
+                    <p style="font-size:11px;color:#9ca3af;font-weight:600;">BENDAHARA</p>
+                    <p><strong>Nama:</strong> <span id="profilBendahara">-</span></p>
+                  </div>
+                  <div>
+                    <p style="font-size:11px;color:#9ca3af;font-weight:600;">OPERATOR MADRASAH</p>
+                    <p><strong>Nama:</strong> <span id="profilOperator">-</span></p>
+                  </div>
+                  <div>
+                    <p style="font-size:11px;color:#9ca3af;font-weight:600;">KETUA YAYASAN</p>
+                    <p><strong>Nama:</strong> <span id="profilKetuaYayasan">-</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+              <div style="background:#f0fdf4;border-radius:12px;padding:16px;border:2px solid #059669;">
+                <h4 style="color:#065f46;font-weight:700;margin-bottom:8px;">⭐ Visi</h4>
+                <p id="profilVisi" style="font-size:14px;line-height:1.6;">Terwujudnya generasi muslim yang cerdas, berakhlak mulia, dan berwawasan global berdasarkan Al-Qur'an dan Sunnah</p>
+              </div>
+              <div style="background:#eff6ff;border-radius:12px;padding:16px;border:2px solid #2563eb;">
+                <h4 style="color:#1e40af;font-weight:700;margin-bottom:8px;">🎯 Misi</h4>
+                <ul id="profilMisi" style="font-size:13px;line-height:1.8;padding-left:20px;">
+                  <li>Menyelenggarakan pendidikan yang berkualitas dan berkarakter Islami</li>
+                  <li>Mengembangkan potensi anak secara optimal sesuai dengan tahapan usianya</li>
+                  <li>Menanamkan nilai-nilai keimanan dan ketakwaan sejak dini</li>
+                  <li>Menciptakan lingkungan belajar yang aman, nyaman, dan menyenangkan</li>
+                  <li>Menjalin kerjasama yang harmonis dengan orang tua dan masyarakat</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
+              <div style="background:linear-gradient(135deg,#059669,#047857);border-radius:12px;padding:16px;color:white;text-align:center;">
+                <div style="font-size:28px;font-weight:800;" id="profilTotalSiswa">0</div>
+                <div style="font-size:12px;opacity:0.8;">Total Siswa</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:12px;padding:16px;color:white;text-align:center;">
+                <div style="font-size:28px;font-weight:800;" id="profilTotalGuru">0</div>
+                <div style="font-size:12px;opacity:0.8;">Total Guru</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px;padding:16px;color:white;text-align:center;">
+                <div style="font-size:28px;font-weight:800;" id="profilTotalKelas">3</div>
+                <div style="font-size:12px;opacity:0.8;">Total Kelas</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#d97706,#b45309);border-radius:12px;padding:16px;color:white;text-align:center;">
+                <div style="font-size:28px;font-weight:800;" id="profilTahunBerdiri">2020</div>
+                <div style="font-size:12px;opacity:0.8;">Tahun Berdiri</div>
+              </div>
+            </div>
+
+            <div style="margin-top:20px;padding:12px;background:#f3f4f6;border-radius:8px;text-align:center;font-size:12px;color:#6b7280;">
+              <span>🔄 Terakhir diperbarui: <span id="profilLastUpdate">-</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="cardLokasiQRGuru" style="display:none;">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">📍 Lokasi & QR Absensi Guru</h3>
+          <p style="font-size:12px;color:#6b7280;margin-bottom:16px;">Pusat pengaturan absen QR mandiri guru: cetak/buat ulang QR, dan atur titik lokasi sekolah untuk validasi jarak. <strong>Penting:</strong> untuk mengatur lokasi, gunakan HP (bukan laptop/komputer) sambil berdiri di area sekolah, supaya GPS akurat.</p>
+          <div style="text-align:left;margin-bottom:16px;">
+            <p style="font-size:12px;font-weight:600;margin-bottom:6px;">📍 Lokasi Sekolah (opsional — untuk validasi jarak absen)</p>
+            <div id="lokasiSekolahInfoProfil" style="font-size:12px;color:#6b7280;margin-bottom:12px;">Memuat...</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div>
+                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Latitude</label>
+                <input type="number" step="any" class="field" id="latSekolahProfil" placeholder="mis. -7.12345" style="padding:6px 10px;">
+              </div>
+              <div>
+                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Longitude</label>
+                <input type="number" step="any" class="field" id="lngSekolahProfil" placeholder="mis. 112.12345" style="padding:6px 10px;">
+              </div>
+            </div>
+            <div style="margin-bottom:8px;max-width:200px;">
+              <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Radius Toleransi (meter)</label>
+              <input type="number" class="field" id="radiusSekolahProfil" placeholder="150" style="padding:6px 10px;" value="150">
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" style="white-space:nowrap;" onclick="simpanLokasiManual('latSekolahProfil','lngSekolahProfil','radiusSekolahProfil','lokasiSekolahInfoProfil')">💾 Simpan Latitude/Longitude Manual</button>
+              <button class="btn btn-soft" style="white-space:nowrap;" onclick="setLokasiSekolah('radiusSekolahProfil','lokasiSekolahInfoProfil','latSekolahProfil','lngSekolahProfil')">📍 Atau Deteksi Otomatis (GPS HP)</button>
+            </div>
+            <p style="font-size:11px;color:#9ca3af;margin-top:6px;">Cara ambil Latitude/Longitude paling akurat: buka Google Maps → cari/klik-kanan titik lokasi sekolah → angka koordinat akan muncul, tinggal disalin ke sini. Atau klik "Deteksi Otomatis" dari HP sambil berdiri di sekolah.</p>
+          </div>
+          <hr style="margin:16px 0;border-color:#e5e7eb;">
+          <button class="btn btn-primary" style="width:100%;" onclick="showQRAbsenGuru()">🖨️ Kelola QR Absen Guru (Cetak / Buat Baru)</button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: STUDENTS
+      ============================================================ -->
+      <div id="page-students" class="page-content" style="display:none;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <h3 style="font-size:18px;font-weight:700;">🧑‍🎓 Data Siswa</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="showTambahSiswa()">+ Tambah Siswa</button>
+              <button class="btn btn-soft" onclick="downloadTemplateSiswa()">📋 Template Excel</button>
+              <button class="btn btn-success" onclick="document.getElementById('importSiswaFile').click()">📥 Import Excel</button>
+              <input type="file" id="importSiswaFile" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importSiswaExcel(this.files[0])">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <input type="text" class="field" id="studentsSearchInput" placeholder="🔍 Cari nama, NIS, atau orang tua..." style="max-width:280px;" oninput="searchSortStudents()">
+            <select class="field" id="studentsSortSelect" style="max-width:180px;" onchange="searchSortStudents()">
+              <option value="">Urutan Default</option>
+              <option value="nama_asc">Nama (A-Z)</option>
+              <option value="nama_desc">Nama (Z-A)</option>
+              <option value="kelas">Kelas</option>
+              <option value="nis">NIS</option>
+            </select>
+            <button class="btn btn-soft" onclick="clearStudentsSearchSort()">✕ Reset</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>JK</th><th>Orang Tua</th><th>Aksi</th></tr></thead>
+              <tbody id="studentsTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="studentsPagination">
+            <button onclick="changeStudentPage(-1)" id="studentsPrevBtn" disabled>◀ Prev</button>
+            <span class="page-info" id="studentsPageInfo">Halaman 1</span>
+            <button onclick="changeStudentPage(1)" id="studentsNextBtn">Next ▶</button>
+            <select id="studentsPerPage" onchange="loadStudents()" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;background:white;">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: BUKU INDUK
+      ============================================================ -->
+      <div id="page-buku-induk" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">📖 Buku Induk Siswa</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Catatan biodata permanen seluruh peserta didik (aktif & alumni), tidak pernah dihapus. Nomor Induk bersifat tetap dan tidak dipakai ulang.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input type="text" class="field" id="bukuIndukSearch" placeholder="🔍 Cari nama/nomor induk/NISN..." style="max-width:220px;" oninput="renderBukuIndukTable()">
+            <select class="field" id="bukuIndukFilterStatus" style="max-width:160px;" onchange="renderBukuIndukTable()">
+              <option value="">Semua Status</option>
+              <option value="aktif">Aktif</option>
+              <option value="lulus">Lulus</option>
+            </select>
+            <button class="btn btn-success" onclick="exportBukuIndukExcel()">📊 Export Excel</button>
+            <button class="btn btn-soft" onclick="cetakBukuInduk()">🖨️ Cetak</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>No</th><th>Nomor Induk</th><th>NISN</th><th>Nama</th><th>TTL</th><th>JK</th><th>Nama Ayah/Ibu</th><th>Tgl Masuk</th><th>Status</th><th>Aksi</th></tr></thead>
+              <tbody id="bukuIndukTableBody"><tr><td colspan="10" style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: SUBJECTS (MATA PELAJARAN)
+      ============================================================ -->
+      <div id="page-subjects" class="page-content" style="display:none;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <h3 style="font-size:18px;font-weight:700;">📚 Aspek Perkembangan (6 Aspek Kurikulum PAUD)</h3>
+            <button class="btn btn-primary" onclick="showTambahMapel()">+ Tambah Aspek</button>
+          </div>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">Sesuai Kurikulum 2013 PAUD: Nilai Agama & Moral, Fisik Motorik, Kognitif, Bahasa, Sosial Emosional, Seni. Penilaian memakai skala BB/MB/BSH/BSB (bukan angka).</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <input type="text" class="field" id="subjectsSearchInput" placeholder="🔍 Cari kode, nama, atau guru..." style="max-width:260px;" oninput="renderSubjects()">
+            <select class="field" id="subjectsSortSelect" style="max-width:180px;" onchange="renderSubjects()">
+              <option value="">Urutan Default</option>
+              <option value="nama_asc">Nama (A-Z)</option>
+              <option value="nama_desc">Nama (Z-A)</option>
+              <option value="kelompok">Kelompok</option>
+              <option value="kode">Kode</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr><th>No</th><th>Kode</th><th>Nama Aspek Perkembangan</th><th>Kelompok</th><th>Guru Pengajar</th><th>Aksi</th></tr>
+              </thead>
+              <tbody id="subjectsTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="subjectsPagination">
+            <button onclick="changeSubjectPage(-1)" id="subjectsPrevBtn" disabled>◀ Prev</button>
+            <span class="page-info" id="subjectsPageInfo">Halaman 1</span>
+            <button onclick="changeSubjectPage(1)" id="subjectsNextBtn">Next ▶</button>
+            <select id="subjectsPerPage" onchange="loadSubjects()" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;background:white;">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: ATTENDANCE
+      ============================================================ -->
+      <div id="page-attendance" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">📅 Absensi Siswa</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:12px;" id="attendanceDate">Hari ini: -</p>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>Status</th><th>Keterangan</th></tr></thead>
+              <tbody id="attendanceTableBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</td></tr></tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="guardedCall(this, tandaiSemuaHadir)">✅ Tandai Semua Hadir</button>
+            <button class="btn btn-success" onclick="guardedCall(this, simpanAbsensi)">💾 Simpan Semua</button>
+            <button class="btn btn-soft" onclick="loadAttendance()">🔄 Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: INFAQ SISWA
+      ============================================================ -->
+      <div id="page-infaq" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">💵 Infaq Siswa</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">Setoran infaq mingguan tiap siswa. Nominal per minggu bisa diatur ulang setiap bulan, dan berbeda untuk siswa Yatim/Bersaudara (atur di Data Siswa).</p>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">
+            <div><label class="label">Bulan</label><input type="month" class="field" id="infaqBulan" style="max-width:170px;" onchange="loadInfaq()"></div>
+            <div><label class="label">Nominal Normal (Rp)</label><input type="number" class="field" id="infaqNominalNormal" placeholder="Contoh: 5000" style="max-width:150px;"></div>
+            <div><label class="label">Nominal Yatim (Rp)</label><input type="number" class="field" id="infaqNominalYatim" placeholder="Contoh: 2000" style="max-width:150px;"></div>
+            <div><label class="label">Nominal Bersaudara (Rp)</label><input type="number" class="field" id="infaqNominalBersaudara" placeholder="Contoh: 3000" style="max-width:150px;"></div>
+            <button class="btn btn-warning" onclick="guardedCall(this, saveInfaqNominal)">💾 Simpan Nominal Bulan Ini</button>
+            <button class="btn btn-success" onclick="exportInfaqExcel()">📊 Export Excel</button>
+            <button class="btn btn-soft" onclick="cetakLaporanInfaq()">🖨️ Cetak</button>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input type="text" class="field" id="infaqSearch" placeholder="🔍 Cari nama/kelas..." style="max-width:200px;" oninput="renderInfaqTable()">
+            <select class="field" id="infaqSort" style="max-width:170px;" onchange="renderInfaqTable()">
+              <option value="">Urutan Default</option>
+              <option value="nama_asc">Nama (A-Z)</option>
+              <option value="kelas">Kelas</option>
+              <option value="setor_desc">Total Setor Tertinggi</option>
+              <option value="belum_lunas">Belum Lunas Dulu</option>
+            </select>
+          </div>
+
+          <div id="infaqSummary" style="background:#f0fdf4;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:none;">
+            <strong>💰 Total Terkumpul Bulan Ini: <span id="infaqTotalTerkumpul">Rp 0</span></strong>
+          </div>
+
+          <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:16px;">
+            <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">📈 Tren Infaq 6 Bulan Terakhir</p>
+            <div style="height:200px;"><canvas id="chartInfaqBulanan"></canvas></div>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr id="infaqHeadRow"><th>No</th><th>Nama</th><th>Kelas</th><th>Total Setor</th><th>Status</th></tr></thead>
+              <tbody id="infaqTableBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7280;">Pilih bulan untuk melihat data infaq</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: GRADES
+      ============================================================ -->
+      <div id="page-grades" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">📝 Input Perkembangan Anak</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Penilaian PAUD memakai skala capaian perkembangan, bukan nilai angka.</p>
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div><label class="label">Siswa</label><select class="field" id="gradeStudentSelect"><option value="">Pilih Siswa</option></select></div>
+            <div><label class="label">Aspek Perkembangan</label><select class="field" id="gradeSubjectSelect"><option value="">Pilih Aspek</option></select></div>
+            <div><label class="label">Capaian</label>
+              <select class="field" id="gradeNilai">
+                <option value="">Pilih Capaian</option>
+                <option value="BB">BB — Belum Berkembang</option>
+                <option value="MB">MB — Mulai Berkembang</option>
+                <option value="BSH">BSH — Berkembang Sesuai Harapan</option>
+                <option value="BSB">BSB — Berkembang Sangat Baik</option>
+              </select>
+            </div>
+            <div><label class="label">Semester</label><select class="field" id="gradeSemester"><option value="1">Semester 1</option><option value="2">Semester 2</option></select></div>
+          </div>
+          <button class="btn btn-primary" onclick="guardedCall(this, saveGrade)">💾 Simpan Capaian</button>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <h4 style="font-weight:600;margin-bottom:12px;">📊 Riwayat Capaian Perkembangan</h4>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Siswa</th><th>Aspek</th><th>Semester</th><th>Capaian</th><th>Diubah Oleh</th><th>Aksi</th></tr></thead>
+              <tbody id="gradeHistoryBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7280;">Belum ada data capaian</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: CATATAN ANEKDOT
+      ============================================================ -->
+      <div id="page-anekdot" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">🗒️ Catatan Anekdot</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Catatan singkat pengamatan perilaku/kejadian spesifik anak sehari-hari (mis. "Budi berbagi mainan tanpa diminta"). Jadi bahan penulisan rapor narasi tiap semester.</p>
+          <div class="grid-2" style="margin-bottom:12px;">
+            <div><label class="label">Siswa</label><select class="field" id="anekdotStudentSelect"><option value="">Pilih Siswa</option></select></div>
+            <div><label class="label">Tanggal</label><input type="date" class="field" id="anekdotTanggal"></div>
+          </div>
+          <div style="margin-bottom:12px;"><label class="label">Aspek Perkembangan</label><select class="field" id="anekdotAspek"><option value="">Pilih Aspek</option></select></div>
+          <div style="margin-bottom:16px;"><label class="label">Catatan</label><textarea class="field" id="anekdotCatatan" rows="3" placeholder="Ceritakan singkat apa yang diamati..." maxlength="500"></textarea></div>
+          <button class="btn btn-primary" onclick="guardedCall(this, saveAnekdot)">💾 Simpan Catatan</button>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <h4 style="font-weight:600;">📋 Riwayat Catatan</h4>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <input type="text" class="field" id="anekdotSearch" placeholder="🔍 Cari nama/catatan..." style="max-width:180px;" oninput="renderAnekdotList()">
+              <select class="field" id="anekdotFilterSiswa" style="max-width:200px;" onchange="renderAnekdotList()"><option value="">Semua Siswa</option></select>
+              <button class="btn btn-soft" id="btnCetakAnekdot" style="display:none;" onclick="cetakAnekdotSiswa()">🖨️ Cetak Kumpulan (Siswa Terpilih)</button>
+            </div>
+          </div>
+          <div id="anekdotList"><div style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</div></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: RAPOR NARASI
+      ============================================================ -->
+      <div id="page-rapor-narasi" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">📜 Rapor Narasi</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Gabungan otomatis dari data Nilai (BB/MB/BSH/BSB) dan Catatan Anekdot jadi paragraf deskriptif per aspek, siap diedit lalu dicetak.</p>
+          <div class="grid-2" style="margin-bottom:12px;">
+            <div><label class="label">Siswa</label><select class="field" id="raporStudentSelect"><option value="">Pilih Siswa</option></select></div>
+            <div><label class="label">Semester</label><select class="field" id="raporSemester"><option value="1">Semester 1 (Ganjil)</option><option value="2">Semester 2 (Genap)</option></select></div>
+          </div>
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div><label class="label">Catatan Anekdot dari tanggal</label><input type="date" class="field" id="raporTanggalMulai"></div>
+            <div><label class="label">sampai tanggal</label><input type="date" class="field" id="raporTanggalSelesai"></div>
+          </div>
+          <button class="btn btn-primary" onclick="generateRaporNarasi()">✨ Buat Draft Narasi</button>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <div id="raporNarasiHasil" style="display:none;">
+            <div id="raporNarasiAspekList"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+              <button class="btn btn-soft" onclick="cetakRaporNarasi()">🖨️ Cetak Rapor</button>
+              <button class="btn btn-success" onclick="kirimRaporNarasiWA()">📲 Kirim via WhatsApp</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: JOURNAL
+      ============================================================ -->
+      <div id="page-journal" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">📓 Jurnal Mengajar</h3>
+          <div class="grid-3" style="margin-bottom:12px;">
+            <div><label class="label">Aspek</label><input type="text" class="field" id="journalMapel" placeholder="Contoh: Kognitif / Bahasa"></div>
+            <div><label class="label">Materi</label><input type="text" class="field" id="journalMateri" placeholder="Materi yang diajarkan"></div>
+            <div><label class="label">Kelas</label><select class="field" id="journalKelas"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
+            <div><label class="label">Guru</label><select class="field" id="journalGuru"><option value="">-- Pilih Guru --</option></select></div>
+          </div>
+          <button class="btn btn-primary" onclick="guardedCall(this, saveJournal)">💾 Simpan Jurnal</button>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <h4 style="font-weight:600;">📋 Riwayat Jurnal</h4>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <input type="text" class="field" id="journalSearch" placeholder="🔍 Cari mapel/materi..." style="max-width:180px;" oninput="filterJournalByGuru()">
+              <label class="label" style="margin:0;">Filter Guru:</label>
+              <select class="field" id="journalFilterGuru" style="max-width:200px;" onchange="filterJournalByGuru()"><option value="">Semua Guru</option></select>
+            </div>
+          </div>
+          <div id="journalList"><div style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</div></div>
+          <div class="pagination" id="journalPagination">
+            <button onclick="changeJournalPage(-1)" id="journalPrevBtn" disabled>◀ Prev</button>
+            <span class="page-info" id="journalPageInfo">Halaman 1</span>
+            <button onclick="changeJournalPage(1)" id="journalNextBtn">Next ▶</button>
+            <select id="journalPerPage" onchange="loadJournal()" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;background:white;">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: TEACHER ATTENDANCE - DIPERBAIKI DENGAN DATA DEFAULT
+      ============================================================ -->
+      <div id="page-teacher-attendance" class="page-content" style="display:none;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <h3 style="font-size:18px;font-weight:700;">📸 Absen Guru</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="showTambahGuru()">+ Tambah Guru</button>
+              <button class="btn btn-warning" id="btnQRAbsenGuru" style="display:none;" onclick="showQRAbsenGuru()">📱 Cetak/Tampilkan QR Absen</button>
+              <button class="btn btn-success" onclick="absenManualGuru()">📝 Absen Manual Semua</button>
+              <button class="btn btn-soft" onclick="loadTeacherAttendance()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div id="faceStatus">📱 Guru absen dengan scan QR yang dicetak/ditampilkan Admin (validasi lokasi opsional, bisa diaktifkan di menu QR).</div>
+          <div id="quotaInfo">📊 Total absen hari ini: <span id="totalAbsenGuru">0</span> guru dari <span id="totalGuru">0</span> guru</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">
+            <input type="date" class="field" id="filterTanggalGuru" style="max-width:200px;padding:6px 12px;" onchange="loadTeacherAttendance()">
+            <select class="field" id="filterStatusGuru" style="max-width:150px;padding:6px 12px;" onchange="filterTeacherAttendance()">
+              <option value="">Semua</option>
+              <option value="hadir">✅ Hadir</option>
+              <option value="belum">❌ Belum Absen</option>
+            </select>
+            <input type="text" class="field" id="searchGuru" placeholder="🔍 Cari guru..." style="max-width:200px;padding:6px 12px;" oninput="filterTeacherAttendance()">
+          </div>
+          <hr style="margin:16px 0;border-color:#e5e7eb;">
+          <div id="teacherAttendanceList"><div style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</div></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: RIWAYAT ABSEN SAYA (khusus guru - read only, akun sendiri)
+      ============================================================ -->
+      <div id="page-riwayat-absen-saya" class="page-content" style="display:none;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+            <h3 style="font-size:18px;font-weight:700;">🕘 Riwayat Absen Saya</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input type="month" class="field" id="riwayatAbsenBulan" style="max-width:180px;" onchange="loadRiwayatAbsenSaya()">
+              <button class="btn btn-soft" onclick="loadRiwayatAbsenSaya()">🔄 Refresh</button>
+            </div>
+          </div>
+          <p style="font-size:12px;color:#6b7280;margin-bottom:12px;">Riwayat absen mandiri (QR) untuk akun Anda sendiri. Kalau ada jam/tanggal yang salah, hubungi admin.</p>
+          <div id="riwayatAbsenSayaList"><div style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</div></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: REKAP
+      ============================================================ -->
+      <div id="page-rekap" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">📋 Rekap Absensi</h3>
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="tabRekapSiswaBtn" onclick="switchRekapTab('siswa')">👨‍🎓 Absensi Siswa</button>
+            <button class="btn btn-soft" id="tabRekapGuruBtn" onclick="switchRekapTab('guru')">👩‍🏫 Absen Guru</button>
+            <button class="btn btn-soft" id="tabRekapJurnalBtn" onclick="switchRekapTab('jurnal')">📔 Jurnal</button>
+          </div>
+
+          <div id="rekapSiswaSection">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+              <input type="month" class="field" id="rekapBulan" style="max-width:200px;" onchange="loadRekap()">
+              <input type="text" class="field" id="rekapSiswaSearch" placeholder="🔍 Cari nama/kelas..." style="max-width:200px;" oninput="renderRekapSiswaTable()">
+              <select class="field" id="rekapSiswaSort" style="max-width:170px;" onchange="renderRekapSiswaTable()">
+                <option value="">Urutan Default</option>
+                <option value="nama_asc">Nama (A-Z)</option>
+                <option value="kelas">Kelas</option>
+                <option value="hadir_desc">Hadir Terbanyak</option>
+                <option value="alpa_desc">Alpa Terbanyak</option>
+              </select>
+              <button class="btn btn-success" onclick="exportRekapExcel()">📊 Export Excel</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>No</th><th>Nama</th><th>Kelas</th><th>Hadir</th><th>Sakit</th><th>Izin</th><th>Alpa</th><th>Total</th></tr></thead>
+                <tbody id="rekapTableBody"><tr><td colspan="8" style="text-align:center;padding:20px;color:#6b7280;">Pilih bulan untuk melihat rekap</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="rekapGuruSection" style="display:none;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+              <input type="month" class="field" id="rekapGuruBulan" style="max-width:200px;" onchange="loadRekapGuru()">
+              <input type="text" class="field" id="rekapGuruSearch" placeholder="🔍 Cari nama guru..." style="max-width:200px;" oninput="renderRekapGuruTable()">
+              <select class="field" id="rekapGuruSort" style="max-width:170px;" onchange="renderRekapGuruTable()">
+                <option value="">Urutan Default</option>
+                <option value="nama_asc">Nama (A-Z)</option>
+                <option value="persen_desc">% Kehadiran Tertinggi</option>
+                <option value="persen_asc">% Kehadiran Terendah</option>
+                <option value="telat_desc">Telat Terbanyak</option>
+              </select>
+              <button class="btn btn-success" onclick="exportRekapGuruExcel()">📊 Export Excel</button>
+              <button class="btn btn-soft" onclick="cetakRekapGuru()">🖨️ Cetak</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>No</th><th>Nama</th><th>NIP</th><th>Hadir</th><th>Hari Tercatat</th><th>% Kehadiran</th><th>Telat</th><th>Pulang Awal</th></tr></thead>
+                <tbody id="rekapGuruTableBody"><tr><td colspan="8" style="text-align:center;padding:20px;color:#6b7280;">Pilih bulan untuk melihat rekap</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="rekapJurnalSection" style="display:none;">
+            <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">Ringkasan jumlah jurnal mengajar yang tercatat per guru pada bulan terpilih.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+              <input type="month" class="field" id="rekapJurnalBulan" style="max-width:200px;" onchange="loadRekapJurnal()">
+              <input type="text" class="field" id="rekapJurnalSearch" placeholder="🔍 Cari nama guru..." style="max-width:200px;" oninput="renderRekapJurnalTable()">
+              <select class="field" id="rekapJurnalSort" style="max-width:190px;" onchange="renderRekapJurnalTable()">
+                <option value="">Urutan Default</option>
+                <option value="nama_asc">Nama (A-Z)</option>
+                <option value="jumlah_desc">Jumlah Jurnal Terbanyak</option>
+                <option value="jumlah_asc">Jumlah Jurnal Tersedikit</option>
+              </select>
+              <button class="btn btn-success" onclick="exportRekapJurnalExcel()">📊 Export Excel</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>No</th><th>Nama Guru</th><th>Jumlah Jurnal</th><th>Mapel Terakhir</th><th>Tanggal Terakhir</th></tr></thead>
+                <tbody id="rekapJurnalTableBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7280;">Pilih bulan untuk melihat rekap</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: REKAP NILAI
+      ============================================================ -->
+      <div id="page-rekap-nilai" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">📊 Rekap Capaian Perkembangan</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Skala: BB (Belum Berkembang), MB (Mulai Berkembang), BSH (Berkembang Sesuai Harapan), BSB (Berkembang Sangat Baik)</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <select class="field" id="rekapNilaiKelas" style="max-width:200px;" onchange="loadRekapNilai()"><option value="">Semua Kelas</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+            <select class="field" id="rekapNilaiSemester" style="max-width:200px;" onchange="loadRekapNilai()"><option value="1">Semester 1</option><option value="2">Semester 2</option></select>
+            <input type="text" class="field" id="rekapNilaiSearch" placeholder="🔍 Cari nama..." style="max-width:200px;" oninput="renderRekapNilaiTable()">
+            <select class="field" id="rekapNilaiSort" style="max-width:170px;" onchange="renderRekapNilaiTable()">
+              <option value="">Urutan Default</option>
+              <option value="nama_asc">Nama (A-Z)</option>
+              <option value="nama_desc">Nama (Z-A)</option>
+            </select>
+            <button class="btn btn-success" onclick="exportRekapNilaiExcel()">📊 Export Excel</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table id="rekapNilaiTable">
+              <thead><tr id="rekapNilaiHeadRow"><th>No</th><th>Nama</th><th>Kelas</th></tr></thead>
+              <tbody id="rekapNilaiBody"><tr><td colspan="3" style="text-align:center;padding:20px;color:#6b7280;">Belum ada data capaian</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: HONOR
+      ============================================================ -->
+      <div id="page-honor" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">💰 Honor Guru</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Dihitung otomatis dari jumlah hari <strong>Absen Datang</strong> tercatat tiap guru pada periode terpilih. Potongan Telat/Pulang Awal (kalau diatur) otomatis mengurangi honor kotor.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div><label class="label">Honor per Hari Default (Rp)</label><input type="number" class="field" id="honorDefaultHarian" placeholder="50000" style="max-width:160px;"></div>
+            <button class="btn btn-soft" onclick="guardedCall(this, saveHonorDefault)">💾 Simpan Default</button>
+            <p style="font-size:11px;color:#9ca3af;margin:0;">Berlaku untuk guru yang belum diatur honor khususnya di Data Guru.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px;padding:12px;background:#fff7ed;border-radius:10px;">
+            <div><label class="label">Potongan per Hari Telat (Rp)</label><input type="number" class="field" id="honorPotonganTelat" placeholder="0" style="max-width:160px;"></div>
+            <div><label class="label">Potongan per Hari Pulang Awal (Rp)</label><input type="number" class="field" id="honorPotonganPulangAwal" placeholder="0" style="max-width:160px;"></div>
+            <button class="btn btn-soft" onclick="guardedCall(this, saveHonorPotongan)">💾 Simpan Potongan</button>
+            <p style="font-size:11px;color:#9ca3af;margin:0;">Kosongkan/isi 0 kalau tidak mau ada potongan. Berlaku sama untuk semua guru.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px;padding:12px;background:#f0fdf4;border-radius:10px;">
+            <div><label class="label">🏆 Bonus Guru Terajin (Rp)</label><input type="number" class="field" id="honorBonusTerajin" placeholder="0" style="max-width:160px;"></div>
+            <button class="btn btn-soft" onclick="guardedCall(this, saveHonorBonusTerajin)">💾 Simpan Bonus</button>
+            <p style="font-size:11px;color:#9ca3af;margin:0;">Diberikan ke 1 guru dengan % Kehadiran tertinggi bulan itu. Kosongkan/0 kalau tidak ada bonus.</p>
+          </div>
+          <div class="grid-3" style="margin-bottom:16px;">
+            <div><label class="label">Periode</label><input type="month" class="field" id="honorPeriode"></div>
+            <div><label class="label">Guru</label><select class="field" id="honorGuru"><option value="">Semua Guru</option></select></div>
+            <div style="display:flex;align-items:flex-end;gap:8px;">
+              <button class="btn btn-primary" onclick="hitungHonor()">🧮 Hitung Honor</button>
+              <button class="btn btn-soft" onclick="exportSlipHonorPDF()">📄 Export Slip Honor</button>
+            </div>
+          </div>
+          <div id="honorResult"><div style="text-align:center;padding:20px;color:#6b7280;">Pilih periode dan klik Hitung Honor</div></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: SURAT
+      ============================================================ -->
+      <div id="page-surat" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">📄 Surat & Ijin</h3>
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div><label class="label">Jenis Surat</label><select class="field" id="suratJenis"><option value="ijin">Surat Ijin</option><option value="sakit">Surat Sakit</option><option value="keterangan">Surat Keterangan</option><option value="dispensasi">Surat Dispensasi</option></select></div>
+            <div><label class="label">Nama Siswa</label><input type="text" class="field" id="suratNama" placeholder="Nama siswa"></div>
+            <div><label class="label">Kelas</label><select class="field" id="suratKelas"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
+            <div><label class="label">Tanggal</label><input type="date" class="field" id="suratTanggal"></div>
+            <div style="grid-column:span 2;"><label class="label">Keterangan</label><textarea class="field" id="suratKeterangan" rows="3" placeholder="Isi keterangan..."></textarea></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="guardedCall(this, generateSurat)">📄 Generate Surat</button>
+            <button class="btn btn-success" onclick="cetakSurat()">🖨️ Cetak / Download PDF</button>
+          </div>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <div id="suratPreview" class="surat-preview"><div style="text-align:center;padding:20px;color:#6b7280;">Silakan isi data untuk generate surat</div></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: JADWAL
+      ============================================================ -->
+      <div id="page-jadwal" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">📅 Manajemen Jadwal</h3>
+          <div class="grid-4" style="margin-bottom:12px;">
+            <div><label class="label">Hari</label><select class="field" id="jadwalHari"><option value="Senin">Senin</option><option value="Selasa">Selasa</option><option value="Rabu">Rabu</option><option value="Kamis">Kamis</option><option value="Jumat">Jumat</option><option value="Sabtu">Sabtu</option></select></div>
+            <div><label class="label">Kelas</label><select class="field" id="jadwalKelas"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
+            <div><label class="label">Aspek</label><input type="text" class="field" id="jadwalMapel" placeholder="Contoh: Kognitif / Bahasa"></div>
+            <div><label class="label">Guru</label><input type="text" class="field" id="jadwalGuru" placeholder="Nama Guru"></div>
+          </div>
+          <button class="btn btn-primary" onclick="guardedCall(this, simpanJadwal)">💾 Simpan Jadwal</button>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Hari</th><th>Kelas</th><th>Mapel</th><th>Guru</th><th>Aksi</th></tr></thead>
+              <tbody id="jadwalTableBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7280;">Belum ada jadwal</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: KALENDER AKADEMIK
+      ============================================================ -->
+      <div id="page-kalender-akademik" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">🗓️ Kalender Akademik</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Daftar hari libur, kegiatan sekolah, ujian, dan hari besar keagamaan.</p>
+
+          <div id="kalenderAdminForm" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:16px;">
+            <div class="grid-2" style="margin-bottom:10px;">
+              <div><label class="label">Tanggal</label><input type="date" class="field" id="kalenderTanggal"></div>
+              <div><label class="label">Kategori</label><select class="field" id="kalenderKategori">
+                <option value="libur_nasional">🔴 Libur Nasional</option>
+                <option value="libur_semester">🟠 Libur Semester</option>
+                <option value="kegiatan_sekolah">🟢 Kegiatan Sekolah</option>
+                <option value="ujian">🔵 Ujian/Penilaian</option>
+                <option value="hari_besar_agama">🟣 Hari Besar Keagamaan</option>
+              </select></div>
+            </div>
+            <div style="margin-bottom:10px;"><label class="label">Judul Kegiatan</label><input type="text" class="field" id="kalenderJudul" placeholder="Contoh: Libur Hari Raya Idul Fitri" maxlength="150"></div>
+            <div style="margin-bottom:10px;"><label class="label">Keterangan (opsional)</label><input type="text" class="field" id="kalenderKeterangan" placeholder="Catatan tambahan" maxlength="200"></div>
+            <button class="btn btn-primary" onclick="guardedCall(this, saveKalenderAkademik)">💾 Tambah ke Kalender</button>
+            <button class="btn btn-soft" onclick="guardedCall(this, muatKalenderKemenag)">🕌 Muat Kalender Kemenag TA 2026/2027</button>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:14px;">
+            <div><label class="label">Bulan</label><input type="month" class="field" id="kalenderBulan" style="max-width:170px;" onchange="loadKalenderAkademik()"></div>
+            <select class="field" id="kalenderFilterKategori" style="max-width:190px;" onchange="renderKalenderAkademikList()">
+              <option value="">Semua Kategori</option>
+              <option value="libur_nasional">🔴 Libur Nasional</option>
+              <option value="libur_semester">🟠 Libur Semester</option>
+              <option value="kegiatan_sekolah">🟢 Kegiatan Sekolah</option>
+              <option value="ujian">🔵 Ujian/Penilaian</option>
+              <option value="hari_besar_agama">🟣 Hari Besar Keagamaan</option>
+            </select>
+          </div>
+          <div id="kalenderAkademikList"><div style="text-align:center;padding:20px;color:#6b7280;">Memuat kalender...</div></div>
+        </div>
+      </div>
+
+      <div id="page-promotion" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">📚 Kenaikan Kelas</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <select class="field" id="promotionDari" style="max-width:200px;"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+            <span style="display:flex;align-items:center;font-weight:600;">→</span>
+            <select class="field" id="promotionKe" style="max-width:200px;"><option value="B">B</option><option value="C">C</option><option value="Lulus">Lulus</option></select>
+            <button class="btn btn-warning" onclick="guardedCall(this, prosesKenaikan)">🚀 Proses Kenaikan</button>
+          </div>
+          <div id="promotionResult"></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: ALUMNI
+      ============================================================ -->
+      <div id="page-alumni" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">🎓 Data Alumni</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Siswa yang sudah diluluskan lewat menu Kenaikan Kelas — terpisah dari Data Siswa aktif.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <input type="text" class="field" id="alumniSearch" placeholder="🔍 Cari nama/NIS..." style="max-width:220px;" oninput="renderAlumniTable()">
+            <select class="field" id="alumniSort" style="max-width:170px;" onchange="renderAlumniTable()">
+              <option value="">Terbaru Dulu</option>
+              <option value="nama_asc">Nama (A-Z)</option>
+              <option value="tahun_desc">Tahun Lulus (Terbaru)</option>
+              <option value="tahun_asc">Tahun Lulus (Terlama)</option>
+            </select>
+            <button class="btn btn-success" onclick="exportAlumniExcel()">📊 Export Excel</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>No</th><th>NIS</th><th>Nama</th><th>Kelas Terakhir</th><th>Tahun Lulus</th><th>Aksi</th></tr></thead>
+              <tbody id="alumniTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: SETTING JAM
+      ============================================================ -->
+      <div id="page-setting-jam" class="page-content" style="display:none;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <h3 style="font-size:18px;font-weight:700;">🕐 Setting Jam Pelajaran</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="guardedCall(this, tambahJam)">➕ Tambah Jam</button>
+              <button class="btn btn-success" onclick="guardedCall(this, simpanJam)">💾 Simpan Semua</button>
+              <button class="btn btn-soft" onclick="loadSettingJam()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div style="background:#eff6ff;border-radius:8px;padding:12px 16px;margin-bottom:16px;border:1px solid #93c5fd;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1e40af;">
+              <span>💡</span>
+              <span>Atur jam pelajaran yang akan digunakan untuk jadwal dan presensi.</span>
+            </div>
+          </div>
+          <div id="jamList"><div style="text-align:center;padding:30px;color:#6b7280;">Memuat data...</div></div>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <h4 style="font-weight:600;margin-bottom:12px;">📋 Preview Jadwal Harian</h4>
+          <div id="previewJadwal" style="background:#f8fafc;border-radius:8px;padding:16px;border:1px solid #e5e7eb;">
+            <div style="text-align:center;padding:12px;color:#6b7280;">Tambahkan jam pelajaran untuk melihat preview</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: LAPORAN
+      ============================================================ -->
+      <div id="page-laporan" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">📋 Laporan</h3>
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div><label class="label">Jenis Laporan</label><select class="field" id="laporanJenis"><option value="absensi">Laporan Absensi</option><option value="nilai">Laporan Nilai</option><option value="kehadiran_guru">Laporan Kehadiran Guru</option></select></div>
+            <div><label class="label">Periode</label><input type="month" class="field" id="laporanPeriode"></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <button class="btn btn-primary" onclick="generateLaporan()">📄 Generate Laporan</button>
+            <button class="btn btn-success" onclick="exportLaporanExcel()">📊 Export Excel</button>
+            <button class="btn btn-danger" onclick="exportLaporanPDF()">📄 Export PDF</button>
+          </div>
+          <div id="laporanPreview" class="report-preview">
+            <div style="text-align:center;padding:20px;color:#6b7280;">Pilih jenis laporan dan periode, lalu klik Generate</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: USER MANAGEMENT
+      ============================================================ -->
+      <div id="page-user-management" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">👥 Manajemen User</h3>
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <button class="btn btn-primary" onclick="showTambahUser()">+ Tambah User</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input type="text" class="field" id="usersSearchInput" placeholder="🔍 Cari nama..." style="max-width:220px;" oninput="renderUserTable()">
+              <select class="field" id="usersSortSelect" style="max-width:170px;" onchange="renderUserTable()">
+                <option value="">Urutan Default</option>
+                <option value="nama_asc">Nama (A-Z)</option>
+                <option value="nama_desc">Nama (Z-A)</option>
+                <option value="role">Role</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Nama</th><th>Role</th><th>Status PIN</th><th>Sinkron Data Guru</th><th>Petugas Infaq</th><th>Aksi</th></tr></thead>
+              <tbody id="userTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:#6b7280;">Memuat data...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PAGE: ADMIN
+      ============================================================ -->
+      <div id="page-admin" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">⚙️ Admin Panel</h3>
+          <div class="pengumuman-form">
+            <h4 style="font-weight:700;margin-bottom:12px;">📢 Kelola Pengumuman</h4>
+            <div class="grid-3" style="margin-bottom:12px;">
+              <div><label class="label">Teks</label><input type="text" class="field" id="pengumumanTeks" placeholder="Isi pengumuman..."></div>
+              <div><label class="label">Jenis</label><select class="field" id="pengumumanJenis"><option value="umum">Umum</option><option value="penting">Penting</option><option value="info">Info</option></select></div>
+              <div><label class="label">Untuk Siapa</label><select class="field" id="pengumumanTarget"><option value="semua">Semua</option><option value="guru">Guru &amp; Staf</option><option value="ortu">Orang Tua</option></select></div>
+            </div>
+            <div style="margin-bottom:12px;"><button class="btn btn-success" onclick="guardedCall(this, simpanPengumuman)">💾 Simpan</button></div>
+          </div>
+          <div class="pengumuman-list" id="pengumumanList"><div style="text-align:center;padding:12px;color:#6b7280;">Memuat pengumuman...</div></div>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <h4 style="font-weight:600;margin-bottom:12px;">📜 Log Aktivitas</h4>
+          <div id="logList" style="max-height:300px;overflow-y:auto;"><div style="text-align:center;padding:12px;color:#6b7280;">Memuat log...</div></div>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <h4 style="font-weight:600;margin-bottom:12px;">🔧 Setup Awal (Opsional)</h4>
+          <p style="font-size:12px;color:#6b7280;margin-bottom:8px;">Setup manual, hanya berjalan jika data terkait masih kosong — tidak akan menimpa data yang sudah ada.</p>
+          <div style="margin-bottom:10px;">
+            <label class="label">📚 Kurikulum PAUD yang Digunakan</label>
+            <select class="field" id="kurikulumPaudSelect" style="max-width:320px;">
+              <option value="k13">Kurikulum 2013 PAUD (6 Aspek Perkembangan)</option>
+              <option value="merdeka">Kurikulum Merdeka PAUD (3 Elemen Capaian Pembelajaran)</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="guardedCall(this, saveKurikulumPaud)">💾 Simpan Pilihan Kurikulum</button>
+            <button class="btn btn-soft" onclick="createDefaultAspek()">📚 Buat Aspek Perkembangan Default</button>
+            <button class="btn btn-soft" onclick="createDefaultTeachers()">👨‍🏫 Buat Data Guru Contoh</button>
+          </div>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <h4 style="font-weight:600;margin-bottom:12px;">🔁 Migrasi Data (Sekali Jalan)</h4>
+          <p style="font-size:12px;color:#6b7280;margin-bottom:8px;">Backfill field <code>guruKey</code> ke data lama yang dibuat sebelum field ini ada. Aman dijalankan berkali-kali — record yang sudah punya <code>guruKey</code> otomatis dilewati, tidak ditimpa ulang.</p>
+          <button class="btn btn-warning" onclick="guardedCall(this, migrasiGuruKey)">🔁 Jalankan Migrasi guruKey</button>
+          <div id="migrasiGuruKeyResult" style="margin-top:10px;font-size:13px;"></div>
+          <hr style="margin:20px 0;border-color:#e5e7eb;">
+          <h4 style="font-weight:600;margin-bottom:12px;">💾 Backup & Restore</h4>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-success" onclick="manualBackup()">💾 Backup</button>
+            <button class="btn btn-warning" onclick="restoreData()">📂 Restore</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GANTI PIN MODAL
+  ============================================================ -->
+  <div id="gantiPinModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="margin-bottom:16px;">🔑 Ganti PIN</h3>
+      <div style="margin-bottom:12px;"><label class="label">PIN Lama</label><input type="password" id="oldPin" class="field" maxlength="6" placeholder="••••••"></div>
+      <div style="margin-bottom:12px;"><label class="label">PIN Baru</label><input type="password" id="newPin" class="field" maxlength="6" placeholder="••••••"></div>
+      <div style="margin-bottom:16px;"><label class="label">Konfirmasi PIN</label><input type="password" id="confirmPin" class="field" maxlength="6" placeholder="••••••"></div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="gantiPin()">Simpan</button><button class="btn btn-soft" onclick="document.getElementById('gantiPinModal').classList.remove('show')">Batal</button></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       JAVASCRIPT - LENGKAP DENGAN AUTO-CREATE DEFAULT TEACHERS
+  ============================================================ -->
+  <!-- ============================================================
+       JAVASCRIPT - dipecah jadi modul per-fitur (lihat folder js/)
+       supaya tidak lagi 1 file 8000+ baris. Urutan <script> di bawah
+       ini WAJIB persis seperti ini - beberapa modul awal (00-core,
+       01-auth) menyimpan variabel/fungsi global yang dipakai modul
+       setelahnya.
+  ============================================================ -->
+  <!-- Lucide Icons: ikon SVG modern pengganti emoji, dipakai di sidebar,
+       topbar, bottom nav, dan layar login/sambutan. -->
+  <!-- ===== Library pihak ketiga (dulu di <head>). Urutan eksekusi sama seperti sebelumnya. =====
+       CATATAN: ganti lucide@latest dengan versi tetap (cek versi yang sekarang terpakai di
+       https://unpkg.com/lucide@latest/package.json) supaya ikon tidak berubah/hilang saat lucide rilis versi baru. -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="js/00-core.js"></script>
+  <script src="js/01-auth.js"></script>
+  <script src="js/02-nav-dashboard.js"></script>
+  <script src="js/03-students.js"></script>
+  <script src="js/04-subjects-attendance-infaq.js"></script>
+  <script src="js/05-grades.js"></script>
+  <script src="js/06-anekdot-rapor-journal.js"></script>
+  <script src="js/07-teacher-attendance-qr.js"></script>
+  <script src="js/08-teachers-rekap.js"></script>
+  <script src="js/09-honor-surat-jadwal.js"></script>
+  <script src="js/10-kalender-promotion-alumni.js"></script>
+  <script src="js/11-setting-laporan-user-admin.js"></script>
+  <script src="js/12-profil-tahunajaran.js"></script>
+  <script src="js/13-appinit.js"></script>
+
+  <!-- Tombol mengambang (FAB) gaya WhatsApp - default: scroll ke atas.
+       Hanya tampil di dalam appPage (setelah login) dan saat halaman
+       sudah di-scroll turun cukup jauh, supaya tidak menutupi konten
+       saat berada di paling atas. -->
+  <button id="fabButton" class="fab-button" aria-label="Kembali ke atas" title="Kembali ke atas">⬆️</button>
+  <script>
+    (function() {
+      const fab = document.getElementById('fabButton');
+      const AMBANG_SCROLL = 300; // px - baru muncul setelah scroll sejauh ini
+
+      function cekTampilFab() {
+        const appPage = document.getElementById('appPage');
+        const sedangLogin = appPage && appPage.style.display !== 'none';
+        if (sedangLogin && window.scrollY > AMBANG_SCROLL) {
+          fab.classList.add('show');
+        } else {
+          fab.classList.remove('show');
+        }
+      }
+
+      window.addEventListener('scroll', cekTampilFab, { passive: true });
+      // Cek juga secara berkala karena beberapa area (mis. .card yang overflow-y)
+      // punya scroll sendiri, bukan scroll dokumen utama.
+      setInterval(cekTampilFab, 1000);
+
+      fab.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // Catatan untuk pengembangan lanjut: kalau suatu saat FAB ini mau
+      // dijadikan tombol aksi cepat per-halaman (mis. "Absen Cepat" saat
+      // di menu Absensi, "+ Pengumuman" saat di menu Pengumuman) daripada
+      // scroll-ke-atas, cukup ubah isi fab.onclick dan fab.innerHTML /
+      // fab.title sesuai menu yang sedang aktif.
+    })();
+  </script>
+  <!-- Menu navigasi bawah (bottom nav) - pintasan ke menu yang paling
+       sering dipakai, supaya di HP tidak perlu buka sidebar & cari satu
+       per satu. Hanya tampil setelah login, khusus tampilan HP (lihat
+       media query .bottom-nav.show di main.css). Tombol "Lainnya"
+       membuka sidebar penuh untuk menu selain 4 pintasan ini. -->
+  <nav id="bottomNav" class="bottom-nav" aria-label="Navigasi cepat">
+    <div class="bottom-nav-inner">
+      <button class="bottom-nav-item" data-target-page="dashboard" aria-label="Beranda">
+        <span class="bn-icon"><i data-lucide="layout-dashboard"></i></span><span>Beranda</span>
+      </button>
+      <button class="bottom-nav-item" data-target-page="attendance" aria-label="Absensi">
+        <span class="bn-icon"><i data-lucide="calendar-check"></i></span><span>Absensi</span>
+      </button>
+      <button class="bottom-nav-center" id="bottomNavQR" aria-label="Absen QR">
+        <span class="bottom-nav-center-circle"><i data-lucide="qr-code"></i></span>
+        <span class="bottom-nav-center-label">Absen QR</span>
+      </button>
+      <button class="bottom-nav-item" data-target-page="journal" aria-label="Jurnal Mengajar">
+        <span class="bn-icon"><i data-lucide="notebook-pen"></i></span><span>Jurnal</span>
+      </button>
+      <button class="bottom-nav-item" id="bottomNavLainnya" aria-label="Menu lainnya">
+        <span class="bn-icon"><i data-lucide="more-horizontal"></i></span><span>Lainnya</span>
+      </button>
+    </div>
+  </nav>
+  <script>
+    (function() {
+      const bottomNav = document.getElementById('bottomNav');
+      const tombolPintasan = document.querySelectorAll('.bottom-nav-item[data-target-page]');
+      const tombolLainnya = document.getElementById('bottomNavLainnya');
+      const tombolQR = document.getElementById('bottomNavQR');
+
+      // Paksa sidebar tetap tertutup setelah navigasi dari bottom nav.
+      // (showPage() di 02-nav-dashboard.js otomatis memanggil toggleSidebar()
+      // di layar <=768px - itu dirancang untuk MENUTUP sidebar setelah memilih
+      // menu DARI DALAM sidebar yang sedang terbuka. Kalau dipanggil dari
+      // bottom nav, sidebar-nya sedang tertutup, jadi toggle itu malah
+      // MEMBUKA sidebar tanpa diminta. Ini menutupnya lagi secara eksplisit.)
+      function pastikanSidebarTertutup() {
+        document.querySelector('.sidebar')?.classList.remove('open');
+        document.querySelector('.sidebar-overlay')?.classList.remove('show');
+      }
+
+      // Pindah ke halaman tertentu: pakai showPage() langsung kalau tersedia
+      // (ini juga otomatis cek hak akses per role & memuat datanya), dengan
+      // fallback klik item sidebar kalau showPage() belum ter-load.
+      function bukaHalaman(page) {
+        if (typeof showPage === 'function') {
+          showPage(page);
+        } else {
+          const target = document.querySelector('.menu-item[data-page="' + page + '"]');
+          if (target) target.click();
+        }
+        pastikanSidebarTertutup();
+      }
+
+      tombolPintasan.forEach(tombol => {
+        tombol.addEventListener('click', () => {
+          bukaHalaman(tombol.dataset.targetPage);
+          tombolPintasan.forEach(t => t.classList.remove('active'));
+          tombol.classList.add('active');
+        });
+      });
+
+      tombolLainnya.addEventListener('click', () => {
+        if (typeof toggleSidebar === 'function') toggleSidebar();
+      });
+
+      // Tombol tengah Absen QR: rute sama persis seperti 2 tombol pintasan di
+      // Dashboard (lihat bolehLihatTombolQR() di atas) - admin -> kelola/cetak QR,
+      // selain itu (kalau akunnya terhubung ke data guru) -> absen mandiri (scan QR
+      // pakai kamera HP). Tombol ini disembunyikan lewat bolehLihatTombolQR() kalau
+      // tidak ada aksi yang relevan, tapi dobel-cek juga di sini untuk jaga-jaga
+      // dipanggil manual (mis. lewat console).
+      tombolQR.addEventListener('click', () => {
+        if (currentRole === 'admin' && typeof openQRFromDashboard === 'function') {
+          openQRFromDashboard();
+        } else if (currentUser?.teacher_id && typeof showAbsenMandiriModal === 'function') {
+          showAbsenMandiriModal();
+        } else if (typeof openQRFromDashboard === 'function') {
+          // fallback terakhir kalau akun tidak terhubung ke data guru sama sekali
+          openQRFromDashboard();
+        } else {
+          bukaHalaman('teacher-attendance');
+        }
+      });
+
+      // Sinkronkan status aktif (warna hijau) kalau pengguna pindah menu
+      // lewat sidebar langsung, bukan lewat pintasan bawah.
+      const sidebarMenu = document.querySelector('.sidebar-menu');
+      if (sidebarMenu) {
+        sidebarMenu.addEventListener('click', (e) => {
+          const item = e.target.closest('.menu-item');
+          if (!item) return;
+          tombolPintasan.forEach(t => {
+            t.classList.toggle('active', t.dataset.targetPage === item.dataset.page);
+          });
+        });
+      }
+
+      // Tampilkan bottom nav hanya setelah login, dan sembunyikan pintasan
+      // ke menu yang memang tidak diizinkan untuk peran pengguna yang
+      // sedang login (mis. Orang Tua tidak punya menu Jurnal). Diutamakan
+      // cek lewat ROLE_PAGES (sumber kebenaran akses yang sama dipakai
+      // showPage()), fallback ke cek keberadaan/visibilitas item sidebar.
+      function bolehAksesHalaman(page) {
+        try {
+          if (typeof ROLE_PAGES !== 'undefined' && typeof currentRole !== 'undefined') {
+            const daftar = ROLE_PAGES[currentRole] || ROLE_PAGES.guru;
+            return daftar.includes(page);
+          }
+        } catch (e) { /* fallback di bawah */ }
+        const target = document.querySelector('.menu-item[data-page="' + page + '"]');
+        return !!(target && target.offsetParent !== null);
+      }
+
+      // Tombol QR tengah menyatukan 2 tombol yang SUDAH ADA di Dashboard, dengan
+      // pola akses yang PERSIS SAMA (lihat js/02-nav-dashboard.js loadDashboard()):
+      //  - "Tampilkan QR Absen" (openQRFromDashboard, kelola/cetak QR) -> admin SAJA.
+      //    openQRFromDashboard() sendiri juga menolak kalau currentRole !== 'admin'.
+      //  - "Absen QR Hari Ini" (showAbsenMandiriModal, scan QR pakai kamera HP untuk
+      //    absen diri sendiri) -> SIAPA SAJA yang akunnya terhubung ke data guru
+      //    (currentUser.teacher_id terisi), termasuk kepsek/wali_kelas/guru yang juga
+      //    mengajar - TIDAK bergantung pada role atau akses halaman 'teacher-attendance'.
+      function bolehLihatTombolQR() {
+        return currentRole === 'admin' || !!currentUser?.teacher_id;
+      }
+
+      function perbaruiBottomNav() {
+        const appPage = document.getElementById('appPage');
+        const sedangLogin = appPage && appPage.style.display !== 'none';
+        bottomNav.classList.toggle('show', !!sedangLogin);
+
+        tombolPintasan.forEach(tombol => {
+          tombol.style.display = bolehAksesHalaman(tombol.dataset.targetPage) ? '' : 'none';
+        });
+        tombolQR.style.display = bolehLihatTombolQR() ? '' : 'none';
+      }
+
+      // Render semua ikon Lucide (sidebar, topbar, bottom nav) sekarang
+      // setelah seluruh markup statis halaman siap.
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+
+      perbaruiBottomNav();
+      setInterval(perbaruiBottomNav, 1000); // app ini render menu secara dinamis via JS, jadi dicek berkala
+    })();
+  </script>
+</body>
+</html>
