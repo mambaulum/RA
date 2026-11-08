@@ -801,3 +801,158 @@ body.dark-mode .pagination select { background: #1e293b; border-color: #334155; 
   /* Jurnal & Anekdot: tombol hapus/aksi di dalam kartu tidak melebar */
   #journalList .btn, #anekdotList .btn { width: auto; min-height: 40px !important; }
 }
+
+
+/* ==========================================================
+   15. TAMPILAN HP v15 - header ramping, sidebar & menu bawah ringkas,
+       Absen Guru lebih pendek.  Blok ini di paling akhir agar menang
+       atas aturan v10-v14 di atas.
+   ========================================================== */
+.topbar-more { display: none; }
+
+/* Sidebar & overlay harus di atas menu bawah (z-index 9985), kalau tidak
+   tombol "Ganti PIN" / "Keluar" tertutup menu bawah saat sidebar dibuka. */
+@media (max-width: 768px) {
+  .sidebar-overlay { z-index: 9990; }
+  .sidebar { z-index: 10000; width: 272px; }
+
+  /* Kepala sidebar: logo kecil di samping nama (bukan bertumpuk) */
+  .sidebar-header { padding: 12px 16px; display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left; }
+  .sidebar-header > div:first-child { margin-bottom: 0 !important; grid-row: 1 / span 2; width: 48px; height: 48px; }
+  .sidebar-header > div:first-child > * { width: 48px !important; height: 48px !important; border-radius: 12px !important; font-size: 24px !important; }
+  .sidebar-header .logo { font-size: 20px; line-height: 1.15; align-self: end; }
+  .sidebar-header .sub { font-size: 11px; margin-top: 0; align-self: start; }
+
+  /* Menu lebih rapat: lebih banyak item terlihat tanpa scroll */
+  .sidebar-menu { padding: 6px 0; }
+  .sidebar-menu .menu-label { padding: 6px 16px 2px; }
+  .sidebar-menu .menu-item { min-height: 42px; padding: 8px 16px; gap: 12px; font-size: 14px; }
+
+  /* Kaki sidebar: akun satu baris, tombol Ganti PIN & Keluar berdampingan */
+  .sidebar-footer {
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center;
+    position: sticky; bottom: 0; background: #14482f; /* tetap terlihat saat menu di-scroll */
+  }
+  .sidebar-footer .user-info { grid-column: 1 / -1; }
+  .sidebar-footer .avatar { width: 32px; height: 32px; font-size: 16px; }
+  .sidebar-footer .ganti-pin-btn, .sidebar-footer .logout-btn { margin-top: 0; min-height: 40px; padding: 6px 10px; }
+  .sidebar-footer > div:last-child { grid-column: 1 / -1; margin-top: 0 !important; }
+  body.dark-mode .sidebar-footer { background: #0f172a; }
+
+  /* Menu bawah: lebih pendek, tombol tengah tidak terlalu menonjol */
+  .bottom-nav-item { min-height: 50px; padding: 5px 2px 4px; gap: 1px; }
+  .bottom-nav-item .bn-icon { width: 40px; height: 24px; }
+  .bottom-nav-center { width: 68px; padding-bottom: 5px; }
+  .bottom-nav-center-circle { width: 48px; height: 48px; margin-top: -20px; border-width: 3px; }
+  .bottom-nav-center-circle svg { width: 22px; height: 22px; }
+  .bottom-nav-center-label { margin-top: 2px; }
+  .main-content { padding-bottom: calc(62px + env(safe-area-inset-bottom)) !important; }
+  .fab-button { bottom: calc(66px + env(safe-area-inset-bottom)) !important; }
+  .toast { bottom: calc(66px + env(safe-area-inset-bottom)) !important; }
+  #page-attendance .card > div:last-child { bottom: calc(54px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 640px) {
+  /* ---------- HEADER: 1 baris ---------- */
+  /* [☰ Judul ......  ● Online  🌙  ⋮]
+     Tahun ajaran + Refresh/Update/Debug/Backup muncul di baris bawah saat ⋮ diketuk. */
+  .topbar { flex-wrap: wrap !important; gap: 0 6px !important; padding: 4px 8px !important; margin-bottom: 8px !important; border-radius: 14px !important; align-items: center; }
+  .topbar > div:first-child { flex: 1 1 0; min-width: 0; gap: 2px !important; }
+  .topbar .hamburger { min-height: 40px; min-width: 40px; padding: 4px; }
+  .topbar .page-title { font-size: 15px !important; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar .page-title small { display: none !important; }
+
+  .topbar .topbar-right { display: contents !important; }
+  .topbar .topbar-right .status-badge { order: 1; padding: 4px 9px; font-size: 11px; }
+  .topbar .dark-toggle { order: 2; min-height: 40px; min-width: 36px; padding: 4px; }
+  .topbar .topbar-more { order: 3; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; min-width: 36px; padding: 4px; background: none; border: none; cursor: pointer; border-radius: 10px; color: #1f2937; }
+  .topbar .topbar-more svg { width: 20px; height: 20px; }
+  .topbar.more-open .topbar-more { background: #e5e7eb; }
+  body.dark-mode .topbar .topbar-more { color: #e2e8f0; }
+  body.dark-mode .topbar.more-open .topbar-more { background: #334155; }
+
+  #offlineQueueBadge, #installBtn { order: 8; flex: 1 0 100%; margin: 4px 0; text-align: center; justify-content: center; }
+  .topbar .topbar-right #tahunAjaranSelect, .topbar .topbar-right .topbar-actions { display: none !important; }
+  .topbar.more-open .topbar-right #tahunAjaranSelect { display: block !important; order: 9; flex: 1 0 100%; width: 100% !important; margin: 6px 0 0; min-height: 40px; }
+  .topbar.more-open .topbar-right .topbar-actions { display: flex !important; order: 10; flex: 1 0 100%; gap: 6px !important; margin: 6px 0 4px; }
+  .topbar.more-open .topbar-right .topbar-actions .btn { flex: 1 1 0; min-height: 40px !important; padding: 6px !important; }
+
+  /* ---------- Jarak & kartu ---------- */
+  .main-content { padding: 6px 8px !important; }
+  .card { padding: 12px !important; margin-bottom: 10px !important; }
+  .card h3 { font-size: 16px !important; }
+  .btn { min-height: 40px !important; }
+  .card hr { margin: 8px 0 !important; }
+
+  /* ---------- Absen Guru ---------- */
+  #page-teacher-attendance .card > div:first-child { margin-bottom: 8px !important; gap: 8px !important; }
+  #page-teacher-attendance .card > div:first-child > div:last-child .btn { min-height: 38px !important; padding: 6px 8px !important; font-size: 12px !important; }
+  #page-teacher-attendance .card > div:first-child > div:last-child { gap: 6px; }
+
+  /* Keterangan: 2 baris, ketuk untuk membuka penuh */
+  #faceStatus { min-height: 0; margin-bottom: 6px; padding: 7px 10px; font-size: 11.5px; font-weight: 500; text-align: left; justify-content: flex-start; border-width: 1px; cursor: pointer; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.35; }
+  #faceStatus.expanded { -webkit-line-clamp: unset; }
+  #quotaInfo { margin-top: 0; padding: 6px 10px; font-size: 12px; }
+
+  /* Filter: tanggal + status sebaris, pencarian di bawahnya */
+  #page-teacher-attendance .card > div:nth-of-type(4) { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px !important; margin: 8px 0 !important; }
+  #page-teacher-attendance #searchGuru { grid-column: 1 / -1; }
+  #page-teacher-attendance .card > div:nth-of-type(4) .field { padding: 6px 10px !important; min-height: 40px; }
+
+  /* Daftar guru: kartu ringkas, tombol datang/pulang berdampingan */
+  .teacher-attendance-item { padding: 8px 10px !important; gap: 6px !important; margin-bottom: 6px !important; }
+  .teacher-attendance-item > div:first-child { gap: 10px !important; flex-wrap: nowrap !important; align-items: center; }
+  .teacher-attendance-item > div:first-child > div:first-child { width: 28px !important; height: 28px !important; font-size: 12px !important; }
+  .teacher-attendance-item > div:last-child { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px !important; }
+  .teacher-attendance-item > div:last-child .btn { min-height: 34px !important; padding: 4px 6px !important; font-size: 12px !important; }
+
+  /* ---------- Form & Dashboard (halaman lain) ---------- */
+  .field, select.field, textarea.field { padding: 8px 12px !important; }
+  .label { margin-bottom: 3px !important; }
+  .card h3[style*="margin-bottom:16px"] { margin-bottom: 10px !important; }
+  /* Jurnal: Kelas & Guru sebaris */
+  #page-journal .grid-3 { grid-template-columns: 1fr 1fr !important; margin-bottom: 10px !important; }
+  #page-journal .grid-3 > div:nth-child(-n+2) { grid-column: 1 / -1; }
+  /* Dashboard: logo & kartu angka lebih kecil */
+  .dashboard-logo-img, .dashboard-logo > div { width: 44px !important; height: 44px !important; font-size: 22px !important; }
+  .dashboard-header { margin-bottom: 8px !important; padding-bottom: 8px !important; }
+  .dashboard-title h2 { font-size: 16px !important; }
+  .stat-card { padding: 8px 12px !important; min-height: 0 !important; border-radius: 14px !important; }
+  .stat-number { font-size: 20px !important; }
+  .status-bar .status-item { padding: 8px 10px; }
+  .status-bar .status-value { font-size: 18px; }
+
+  /* ---------- Formulir 2 kolom, grafik lebih pendek ---------- */
+  .grid-2, .grid-3 { grid-template-columns: 1fr 1fr !important; }
+  .grid-2 > div:has(input[type="text"], input[type="search"], input[type="number"], textarea, input:not([type])),
+  .grid-3 > div:has(input[type="text"], input[type="search"], input[type="number"], textarea, input:not([type])) { grid-column: 1 / -1; }
+  div[style*="height:200px"]:has(canvas) { height: 150px !important; }
+  #page-infaq canvas { max-height: 160px; }
+  .hide-sm { display: none; }
+  .honor-settings > summary { font-size: 13px; white-space: nowrap; }
+  .honor-settings > summary span { display: none; }
+  #page-honor .grid-3 > div:last-child { grid-column: 1 / -1; flex-wrap: wrap; }
+  #page-honor .grid-3 > div:last-child .btn { flex: 1 1 calc(50% - 4px); }
+  #page-honor .grid-3 > div:last-child .btn:first-child { flex-basis: 100%; }
+
+  /* ---------- Daftar Absen Guru: 1 baris per guru ---------- */
+  .teacher-attendance-item { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px !important; }
+  .teacher-attendance-item > div:first-child { min-width: 0; }
+  .teacher-attendance-item > div:first-child > div:last-child { min-width: 0; }
+  .teacher-attendance-item .metode-badge { display: none; }
+  .teacher-attendance-item.non-reguler > div:last-child { display: flex !important; }
+  .teacher-attendance-item.non-reguler > div:last-child .btn { flex: 0 0 auto; padding: 4px 10px !important; }
+  .teacher-attendance-item.reguler > div:last-child { grid-column: 1 / -1; display: flex !important; flex-wrap: wrap; }
+  .teacher-attendance-item.reguler > div:last-child .btn { flex: 0 0 auto; padding: 4px 10px !important; }
+}
+
+/* ---------- Honor: pengaturan bisa dilipat (semua ukuran layar) ---------- */
+.honor-settings { margin-bottom: 14px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 0 12px; }
+.honor-settings > summary { cursor: pointer; padding: 11px 0; font-weight: 700; font-size: 14px; list-style: none; display: flex; align-items: center; gap: 6px; }
+.honor-settings > summary::-webkit-details-marker { display: none; }
+.honor-settings > summary::after { content: "▾"; margin-left: auto; transition: transform .2s; }
+.honor-settings[open] > summary::after { transform: rotate(180deg); }
+.honor-settings > summary span { font-weight: 400; font-size: 12px; color: #6b7280; }
+.honor-settings[open] { padding-bottom: 4px; }
+body.dark-mode .honor-settings { border-color: #334155; }
