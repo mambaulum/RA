@@ -128,7 +128,7 @@
           banner = `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin-bottom:16px;color:#6b7280;font-size:13px;">Belum ada data kehadiran cukup di periode ini untuk menentukan Guru Terajin.</div>`;
         }
 
-        let html = banner + `<div style="overflow-x:auto;"><table><thead><tr><th>No</th><th>Nama Guru</th><th>Mapel</th><th>Hadir</th><th>Honor/Hari</th><th>Honor Kotor</th>${adaPotongan ? '<th>Telat</th><th>Pulang Awal</th><th>Potongan</th>' : ''}${adaBonus ? '<th>Bonus 🏆</th>' : ''}<th>Honor Bersih</th></tr></thead><tbody>`;
+        let html = banner + `<div style="overflow-x:auto;"><table><thead><tr><th>No</th><th>Nama Guru</th><th>Mapel</th><th>Hadir</th><th>Honor/Hari</th><th>Honor Kotor</th>${adaPotongan ? '<th>Telat</th><th>Pulang Awal</th><th>Potongan</th>' : ''}${adaBonus ? '<th>Bonus 🏆</th>' : ''}<th>Honor Bersih</th><th>Aksi</th></tr></thead><tbody>`;
         let no = 1, grandTotalKotor = 0, grandTotalPotongan = 0, grandTotalBonus = 0, grandTotalBersih = 0;
         const dataUntukSlip = [];
         for (const [id, teacher] of entries) {
@@ -141,7 +141,7 @@
           const totalBersih = Math.max(0, totalKotor - potongan) + bonus;
           grandTotalKotor += totalKotor; grandTotalPotongan += potongan; grandTotalBonus += bonus; grandTotalBersih += totalBersih;
           dataUntukSlip.push({
-            nama: teacher.nama || '-', mapel: teacher.mapel || '-', nip: teacher.nip || '-', kepala: d.kepala,
+            id, hp: teacher.no_hp || '', nama: teacher.nama || '-', mapel: teacher.mapel || '-', nip: teacher.nip || '-', kepala: d.kepala,
             hadir: d.hadir, honorPerHari, totalKotor, telat: d.telat, pulangAwal: d.pulangAwal,
             potonganTelatHarian, potonganPulangAwalHarian, potongan, isTerajin: id === terajinId, bonus, totalBersih, tetap
           });
@@ -154,11 +154,13 @@
           if (adaBonus) {
             html += `<td style="color:#059669;">${bonus > 0 ? '+Rp ' + bonus.toLocaleString('id-ID') : '-'}</td>`;
           }
-          html += `<td><strong>Rp ${totalBersih.toLocaleString('id-ID')}</strong></td></tr>`;
+          html += `<td><strong>Rp ${totalBersih.toLocaleString('id-ID')}</strong></td>`;
+          html += `<td style="white-space:nowrap;"><button class="btn btn-soft" style="padding:4px 8px;min-height:32px;font-size:12px;" onclick="exportSlipHonorPDF('${escapeJs(id)}','share')" title="Kirim slip lewat WhatsApp">📲</button></td></tr>`;
         }
-        window.__honorData = { periode, rows: dataUntukSlip };
+        const kepalaEntry = Object.values(semuaData).find(d => d.kepala);
+        window.__honorData = { periode, rows: dataUntukSlip, adaPotongan, adaBonus, kepalaNama: kepalaEntry ? kepalaEntry.nama : '' };
         const kolomSebelum = 6 + (adaPotongan ? 3 : 0) + (adaBonus ? 1 : 0);
-        html += `</tbody><tfoot><tr style="font-weight:700;background:#f3f4f6;"><td colspan="${kolomSebelum}" style="text-align:right;">Total:</td><td>Rp ${grandTotalBersih.toLocaleString('id-ID')}</td></tr></tfoot></table></div>`;
+        html += `</tbody><tfoot><tr style="font-weight:700;background:#f3f4f6;"><td colspan="${kolomSebelum}" style="text-align:right;">Total:</td><td>Rp ${grandTotalBersih.toLocaleString('id-ID')}</td><td></td></tr></tfoot></table></div>`;
         const catatan = [];
         if (adaPotongan) catatan.push(`Potongan: Rp ${potonganTelatHarian.toLocaleString('id-ID')}/hari telat, Rp ${potonganPulangAwalHarian.toLocaleString('id-ID')}/hari pulang awal`);
         if (adaBonus) catatan.push(`Bonus Terajin: Rp ${bonusTerajinNominal.toLocaleString('id-ID')}`);
@@ -172,14 +174,16 @@
       }
     }
 
-    function exportSlipHonorPDF() {
+    async function exportSlipHonorPDF(onlyId, mode) {
       if (!window.__honorData || window.__honorData.rows.length === 0) {
         showToast('⚠️ Klik "Hitung Honor" dulu sebelum export slip!', 'warning');
         return;
       }
       showLoading(true, 'Membuat slip honor PDF...');
       try {
-        const { periode, rows } = window.__honorData;
+        const { periode, rows: semuaRows } = window.__honorData;
+        const rows = onlyId ? semuaRows.filter(r => r.id === onlyId) : semuaRows;
+        if (rows.length === 0) { showToast('⚠️ Data guru tidak ditemukan', 'warning'); showLoading(false); return; }
         const namaBulan = new Date(`${periode}-01T00:00:00`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
         const namaSekolah = window.__profilSekolah?.nama || 'RA Mambaul Ulum';
         const { jsPDF } = window.jspdf;
@@ -241,11 +245,144 @@
           doc.setTextColor(0, 0, 0);
         });
 
-        doc.save(`Slip_Honor_${periode}.pdf`);
-        showToast(`✅ Slip honor untuk ${rows.length} guru berhasil dibuat! (1 PDF, ${rows.length} halaman)`, 'success');
+        if (mode === 'share') {
+          const r0 = rows[0];
+          await bagikanPDFHonor(doc, `Slip_Honor_${periode}_${(r0.nama || 'guru').replace(/[^A-Za-z0-9]+/g, '_')}.pdf`,
+            `Slip honor ${namaBulan} - ${r0.nama}: Rp ${r0.totalBersih.toLocaleString('id-ID')}. Terima kasih. - ${namaSekolah}`, r0.hp);
+        } else {
+          doc.save(`Slip_Honor_${periode}.pdf`);
+          showToast(`✅ Slip honor untuk ${rows.length} guru berhasil dibuat! (1 PDF, ${rows.length} halaman)`, 'success');
+        }
       } catch (error) {
         console.error('Error exporting slip honor PDF:', error);
         showToast('❌ Gagal membuat slip honor: ' + error.message, 'error');
+      }
+      showLoading(false);
+    }
+
+    // Bagikan PDF: di HP membuka lembar bagikan (pilih WhatsApp, file PDF ikut terlampir).
+    // Kalau perangkat tidak mendukung, PDF diunduh lalu WhatsApp dibuka dengan teks ringkas.
+    async function bagikanPDFHonor(doc, namaFile, teks, noHp) {
+      const blob = doc.output('blob');
+      const file = new File([blob], namaFile, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text: teks, title: namaFile });
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return; // pengguna menutup lembar bagikan
+          console.warn('share gagal, pakai cadangan', e);
+        }
+      }
+      doc.save(namaFile);
+      let hp = String(noHp || '').replace(/\D/g, '');
+      if (hp.startsWith('0')) hp = '62' + hp.slice(1);
+      const url = `https://wa.me/${hp}?text=${encodeURIComponent(teks)}`;
+      window.open(url, '_blank', 'noopener');
+      showToast('📎 PDF terunduh. Lampirkan file itu di WhatsApp yang terbuka.', 'info');
+    }
+
+
+    // Rekap honor 1 tabel (A4 landscape) dengan kolom Tanda Tangan penerima,
+    // untuk bukti serah-terima honor. Data dari hasil "Hitung Honor".
+    async function exportRekapHonorPDF(mode) {
+      if (!window.__honorData || window.__honorData.rows.length === 0) {
+        showToast('⚠️ Klik "Hitung Honor" dulu sebelum export rekap!', 'warning');
+        return;
+      }
+      showLoading(true, 'Membuat rekap honor PDF...');
+      try {
+        const { periode, rows, adaPotongan, adaBonus, kepalaNama } = window.__honorData;
+        const rp = n => 'Rp ' + (n || 0).toLocaleString('id-ID');
+        const namaBulan = new Date(`${periode}-01T00:00:00`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        const namaSekolah = window.__profilSekolah?.nama || 'RA Mambaul Ulum';
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+        const mx = 12;
+
+        doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+        doc.text(namaSekolah.toUpperCase(), pw / 2, 14, { align: 'center' });
+        doc.setFontSize(11);
+        doc.text('REKAP HONOR GURU', pw / 2, 20, { align: 'center' });
+        doc.setFont(undefined, 'normal'); doc.setFontSize(10);
+        doc.text(`Periode: ${namaBulan}`, pw / 2, 25, { align: 'center' });
+        doc.setLineWidth(0.4); doc.line(mx, 28, pw - mx, 28);
+
+        const head = ['No', 'Nama Guru', 'Mapel/Jabatan', 'Hadir', 'Honor/Hari', 'Honor Kotor'];
+        if (adaPotongan) head.push('Potongan');
+        if (adaBonus) head.push('Bonus');
+        head.push('Honor Diterima', 'Tanda Tangan');
+        const body = rows.map((r, i) => {
+          const line = [
+            i + 1,
+            r.nama,
+            r.kepala ? 'Kepala Madrasah' : (r.mapel || '-'),
+            r.tetap ? '-' : `${r.hadir} hari`,
+            r.tetap ? 'Bulanan tetap' : rp(r.honorPerHari),
+            rp(r.totalKotor)
+          ];
+          if (adaPotongan) line.push(r.potongan > 0 ? '-' + rp(r.potongan) : '-');
+          if (adaBonus) line.push(r.bonus > 0 ? '+' + rp(r.bonus) : '-');
+          line.push(rp(r.totalBersih), '');
+          return line;
+        });
+        const total = rows.reduce((a, r) => a + r.totalBersih, 0);
+        const ttdIdx = head.length - 1, bersihIdx = head.length - 2;
+        const foot = new Array(head.length).fill('');
+        foot[0] = { content: 'TOTAL', colSpan: bersihIdx, styles: { halign: 'right' } };
+        foot[bersihIdx] = rp(total);
+        // jsPDF-AutoTable: colSpan menggantikan sel di sebelahnya
+        const footRow = [foot[0], foot[bersihIdx], ''];
+
+        const colStyles = { 0: { cellWidth: 10, halign: 'center' }, 3: { halign: 'center' } };
+        colStyles[bersihIdx] = { halign: 'right', fontStyle: 'bold' };
+        colStyles[ttdIdx] = { cellWidth: 48 };
+        for (let c = 4; c < bersihIdx; c++) colStyles[c] = Object.assign({ halign: 'right' }, colStyles[c] || {});
+
+        doc.autoTable({
+          startY: 32, margin: { left: mx, right: mx }, head: [head], body, foot: [footRow],
+          theme: 'grid', showFoot: 'lastPage',
+          styles: { fontSize: 9, cellPadding: 2, valign: 'middle', minCellHeight: 12, lineColor: [120, 120, 120], lineWidth: 0.2 },
+          headStyles: { fillColor: [15, 59, 44], textColor: 255, halign: 'center', minCellHeight: 9 },
+          footStyles: { fillColor: [243, 244, 246], textColor: 0, fontStyle: 'bold', minCellHeight: 9 },
+          columnStyles: colStyles,
+          // nomor di kolom tanda tangan (ganjil kiri, genap kanan) - gaya daftar hadir
+          didDrawCell: (d) => {
+            if (d.section === 'body' && d.column.index === ttdIdx) {
+              const n = d.row.index + 1;
+              doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+              const x = n % 2 === 1 ? d.cell.x + 2 : d.cell.x + d.cell.width / 2 + 2;
+              doc.text(`${n}.`, x, d.cell.y + 4.5);
+              doc.setTextColor(0, 0, 0);
+            }
+          }
+        });
+
+        let y = doc.lastAutoTable.finalY + 6;
+        if (y + 32 > ph - 6) { doc.addPage(); y = 20; }
+        const tgl = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        const kolR = pw - mx - 70;
+        doc.setFontSize(10);
+        doc.text(`Tanggal: ${tgl}`, kolR, y);
+        y += 4.5;
+        doc.text('Mengetahui,', mx + 10, y);
+        doc.text('Bendahara / Admin,', kolR, y);
+        y += 4;
+        doc.text('Kepala Madrasah', mx + 10, y);
+        y += 17;
+        doc.text(kepalaNama ? `( ${kepalaNama} )` : '( ______________________ )', mx + 10, y);
+        doc.text('( ______________________ )', kolR, y);
+
+        if (mode === 'share') {
+          await bagikanPDFHonor(doc, `Rekap_Honor_${periode}.pdf`, `Rekap honor guru ${namaBulan} - ${namaSekolah}. Total: Rp ${total.toLocaleString('id-ID')}.`, '');
+        } else {
+          doc.save(`Rekap_Honor_${periode}.pdf`);
+          showToast('✅ Rekap honor berhasil dibuat!', 'success');
+        }
+      } catch (error) {
+        console.error('Error exporting rekap honor PDF:', error);
+        showToast('❌ Gagal membuat rekap honor: ' + error.message, 'error');
       }
       showLoading(false);
     }

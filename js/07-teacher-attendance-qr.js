@@ -160,7 +160,7 @@
                 </span>
                 <button class="btn btn-danger" style="padding:2px 8px;font-size:10px;min-height:28px;" onclick="resetTeacherAttendance('${escapeJs(teacher.id)}','datang')" title="Reset absen datang">↺</button>
               ` : `
-                <button class="btn btn-success" style="padding:4px 10px;font-size:11px;min-height:30px;" onclick="absenManualGuru('${escapeJs(teacher.id)}','datang')">✅ Absen Datang</button>
+                <button class="btn btn-success" style="padding:4px 10px;font-size:11px;min-height:30px;" onclick="absenManualGuru('${escapeJs(teacher.id)}','datang')">✅ <span class="hide-sm">Absen </span>Datang</button>
               `}
               ${pulang ? `
                 <span style="font-size:11px;background:#dbeafe;color:#1e40af;padding:3px 8px;border-radius:10px;font-weight:600;">
@@ -171,7 +171,7 @@
                 </span>
                 <button class="btn btn-danger" style="padding:2px 8px;font-size:10px;min-height:28px;" onclick="resetTeacherAttendance('${escapeJs(teacher.id)}','pulang')" title="Reset absen pulang">↺</button>
               ` : `
-                <button class="btn btn-warning" style="padding:4px 10px;font-size:11px;min-height:30px;" ${!datang ? 'disabled title="Harus absen datang dulu"' : ''} onclick="absenManualGuru('${escapeJs(teacher.id)}','pulang')">🌇 Absen Pulang</button>
+                <button class="btn btn-warning" style="padding:4px 10px;font-size:11px;min-height:30px;" ${!datang ? 'disabled title="Harus absen datang dulu"' : ''} onclick="absenManualGuru('${escapeJs(teacher.id)}','pulang')">🌇 <span class="hide-sm">Absen </span>Pulang</button>
               `}
               <button class="btn btn-edit" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="editGuru('${escapeJs(teacher.id)}')">✏️</button>
               <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="deleteGuru('${escapeJs(teacher.id)}')">🗑️</button>
