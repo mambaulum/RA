@@ -28,7 +28,7 @@
 // SENGAJA tidak pernah di-cache - data absensi/nilai/dll harus selalu live.
 // ============================================================
 
-const SW_VERSION = 'v8';
+const SW_VERSION = 'v9';
 const STATIC_CACHE = `simamba-static-${SW_VERSION}`;
 const SHELL_CACHE = `simamba-shell-${SW_VERSION}`;
 const CURRENT_CACHES = [STATIC_CACHE, SHELL_CACHE];

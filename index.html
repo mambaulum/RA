@@ -29,10 +29,38 @@
 
   <!-- Registrasi Service Worker: supaya app shell bisa dimuat saat offline -->
   <script>
+    let __regSW = null;
+
+    // Tombol "Update" di header: periksa versi baru secara manual.
+    async function periksaPembaruanApp() {
+      const info = (teks, jenis) => { if (typeof showToast === 'function') showToast(teks, jenis); else alert(teks); };
+      if (!('serviceWorker' in navigator) || !__regSW) { info('Pembaruan otomatis belum aktif. Muat ulang halaman lalu coba lagi.', 'info'); return; }
+      info('🔄 Memeriksa pembaruan...', 'info');
+      try {
+        await __regSW.update();
+        if (__regSW.waiting && navigator.serviceWorker.controller) { tampilkanToastUpdate(__regSW.waiting); return; }
+        if (__regSW.installing) { info('Versi baru sedang diunduh, tombol Refresh akan muncul sebentar lagi.', 'info'); return; }
+        info('✅ Aplikasi sudah versi terbaru', 'success');
+      } catch (e) {
+        info('Gagal memeriksa pembaruan. Periksa koneksi internet.', 'error');
+      }
+    }
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
           .then(reg => {
+            __regSW = reg;
+            // Versi baru yang SUDAH selesai di-install tapi belum diaktifkan (mis. toast
+            // tadi ditutup, atau halaman dibuka ulang): 'updatefound' tidak akan terpicu
+            // lagi, jadi tampilkan toast-nya dari sini.
+            if (reg.waiting && navigator.serviceWorker.controller) tampilkanToastUpdate(reg.waiting);
+            // Aplikasi (PWA) sering dibiarkan terbuka berhari-hari: periksa versi baru
+            // tiap 30 menit dan setiap kali aplikasi dibuka kembali dari latar belakang.
+            setInterval(() => { reg.update().catch(() => {}); }, 30 * 60 * 1000);
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) reg.update().catch(() => {});
+            });
             // Cek versi baru yang sedang di-install di background
             reg.addEventListener('updatefound', () => {
               const workerBaru = reg.installing;
@@ -344,7 +372,8 @@
           <button class="dark-toggle" onclick="toggleDarkMode()" aria-label="Ganti mode gelap/terang"><i data-lucide="moon"></i></button>
           <div style="display:flex;gap:4px;">
             <button class="btn btn-soft" style="padding:6px 10px;font-size:14px;" onclick="refreshAllData()" title="Refresh Data" aria-label="Refresh Data"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i></button>
-            <button class="btn btn-soft" style="padding:6px 10px;font-size:14px;" onclick="showDebug()" title="Debug" aria-label="Debug"><i data-lucide="bug" style="width:14px;height:14px;"></i></button>
+            <button class="btn btn-soft" style="padding:6px 10px;font-size:13px;" onclick="periksaPembaruanApp()" title="Periksa pembaruan aplikasi" aria-label="Periksa pembaruan aplikasi">⬆️ Update</button>
+            <button class="btn btn-soft" style="padding:6px 10px;font-size:14px;" onclick="showDebug()" id="btnDebugTopbar" title="Debug (khusus admin)" aria-label="Debug"><i data-lucide="bug" style="width:14px;height:14px;"></i></button>
             <button class="btn btn-success" style="padding:6px 10px;font-size:14px;" onclick="manualBackup()" id="btnBackupTopbar" title="Backup (khusus admin)" aria-label="Backup"><i data-lucide="save" style="width:14px;height:14px;"></i></button>
           </div>
         </div>
@@ -1389,20 +1418,20 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
   <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.js"></script>
-  <script src="js/00-core.js?v=4"></script>
-  <script src="js/01-auth.js?v=4"></script>
-  <script src="js/02-nav-dashboard.js?v=4"></script>
-  <script src="js/03-students.js?v=4"></script>
-  <script src="js/04-subjects-attendance-infaq.js?v=4"></script>
-  <script src="js/05-grades.js?v=4"></script>
-  <script src="js/06-anekdot-rapor-journal.js?v=4"></script>
-  <script src="js/07-teacher-attendance-qr.js?v=4"></script>
-  <script src="js/08-teachers-rekap.js?v=4"></script>
-  <script src="js/09-honor-surat-jadwal.js?v=4"></script>
-  <script src="js/10-kalender-promotion-alumni.js?v=4"></script>
-  <script src="js/11-setting-laporan-user-admin.js?v=4"></script>
-  <script src="js/12-profil-tahunajaran.js?v=4"></script>
-  <script src="js/13-appinit.js?v=4"></script>
+  <script src="js/00-core.js?v=5"></script>
+  <script src="js/01-auth.js?v=5"></script>
+  <script src="js/02-nav-dashboard.js?v=5"></script>
+  <script src="js/03-students.js?v=5"></script>
+  <script src="js/04-subjects-attendance-infaq.js?v=5"></script>
+  <script src="js/05-grades.js?v=5"></script>
+  <script src="js/06-anekdot-rapor-journal.js?v=5"></script>
+  <script src="js/07-teacher-attendance-qr.js?v=5"></script>
+  <script src="js/08-teachers-rekap.js?v=5"></script>
+  <script src="js/09-honor-surat-jadwal.js?v=5"></script>
+  <script src="js/10-kalender-promotion-alumni.js?v=5"></script>
+  <script src="js/11-setting-laporan-user-admin.js?v=5"></script>
+  <script src="js/12-profil-tahunajaran.js?v=5"></script>
+  <script src="js/13-appinit.js?v=5"></script>
 
   <!-- Tombol mengambang (FAB) gaya WhatsApp - default: scroll ke atas.
        Hanya tampil di dalam appPage (setelah login) dan saat halaman
