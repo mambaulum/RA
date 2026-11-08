@@ -353,14 +353,65 @@
     // ============================================================
     // PORTAL ORANG TUA (read-only, akses via link+token, tanpa login)
     // ============================================================
+    // ============================================================
+    // MENU BAWAH PORTAL ORANG TUA (Hadir / Nilai / Catatan / Infaq)
+    // ============================================================
+    // Tombol ini hanya meloncat ke kartu data ananda. Kartu itu BARU ada setelah
+    // orang tua selesai masuk (nomor WA + PIN) dan data termuat. Dulu menu sudah
+    // tampil di layar "Cari nomor WA" / "Masukkan PIN" dan dipencet tidak terjadi
+    // apa-apa (tidak ada kartu tujuan, tanpa pesan). Sekarang: menu disembunyikan
+    // sampai data tampil, dan kalau tetap dipencet ada pesan; kartu tujuan juga
+    // berkedip sebentar supaya terlihat meski halaman terlalu pendek untuk digulir.
+    function navPortalHtml() {
+      return `<nav class="portal-bottom-nav" aria-label="Loncat ke bagian" hidden>
+        <div class="portal-bottom-nav-inner">
+          <button type="button" class="portal-bottom-nav-item" data-target-sec="portalSecHadir" aria-label="Kehadiran">
+            <span class="bn-icon"><i data-lucide="check-circle-2"></i></span><span>Hadir</span>
+          </button>
+          <button type="button" class="portal-bottom-nav-item" data-target-sec="portalSecNilai" aria-label="Perkembangan/Nilai">
+            <span class="bn-icon"><i data-lucide="sprout"></i></span><span>Nilai</span>
+          </button>
+          <button type="button" class="portal-bottom-nav-item" data-target-sec="portalSecCatatan" aria-label="Catatan Guru">
+            <span class="bn-icon"><i data-lucide="sticky-note"></i></span><span>Catatan</span>
+          </button>
+          <button type="button" class="portal-bottom-nav-item" data-target-sec="portalSecInfaq" aria-label="Infaq">
+            <span class="bn-icon"><i data-lucide="wallet"></i></span><span>Infaq</span>
+          </button>
+        </div>
+      </nav>`;
+    }
+
+    function tampilkanNavPortal(tampil) {
+      const nav = document.querySelector('.portal-bottom-nav');
+      if (!nav) return;
+      nav.hidden = !tampil;
+      if (!tampil) nav.querySelectorAll('.portal-bottom-nav-item').forEach(t => t.classList.remove('active'));
+    }
+
+    function pasangNavPortal() {
+      const nav = document.querySelector('.portal-bottom-nav');
+      if (!nav || nav.dataset.siap) return;
+      nav.dataset.siap = '1';
+      nav.addEventListener('click', e => {
+        const tombol = e.target.closest('.portal-bottom-nav-item[data-target-sec]');
+        if (!tombol) return;
+        const target = document.getElementById(tombol.dataset.targetSec);
+        if (!target) { showToast('Data ananda belum tampil. Masuk dulu dengan PIN.', 'info'); return; }
+        nav.querySelectorAll('.portal-bottom-nav-item').forEach(t => t.classList.remove('active'));
+        tombol.classList.add('active');
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.classList.remove('portal-sec-flash');
+        void target.offsetWidth; // mulai ulang animasi kedip
+        target.classList.add('portal-sec-flash');
+      });
+    }
+
     async function initPortalOrangTua(studentId, token) {
       const portalHTML = `
       <div id="portalOrtuScreen" style="min-height:100vh;min-height:100dvh;background:linear-gradient(135deg,#0f3b2c 0%,#1a5c3e 100%);padding:16px;padding-bottom:calc(74px + env(safe-area-inset-bottom));">
         <div style="max-width:480px;margin:0 auto;">
           <div style="text-align:center;color:white;padding:24px 0 16px;">
-            <div style="width:70px;height:70px;border-radius:16px;background:linear-gradient(135deg,#0f3b2c,#1a5c3e);display:flex;align-items:center;justify-content:center;margin:0 auto;overflow:hidden;">
-              <img src="logo/logo-lembaga.png" alt="Logo lembaga" style="width:92%;height:92%;object-fit:contain;" onerror="this.onerror=null; var p=this.parentElement; p.innerHTML='🧸'; p.style.fontSize='34px'; p.style.color='white';">
-            </div>
+            <div style="display:flex;justify-content:center;margin:0 auto;">${logoHtml(76)}</div>
             <h2 style="font-weight:800;margin-top:4px;">Portal Orang Tua</h2>
           </div>
           <div id="portalOrtuContent" style="background-color:white;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:14px 14px, calc(100% - 14px) 14px, 14px calc(100% - 14px), calc(100% - 14px) calc(100% - 14px);background-size:20px 20px;border-radius:20px;padding:24px;box-shadow:0 0 0 2px #0f3b2c, 0 0 0 6px #fff, 0 0 0 7px #c9a227, 0 20px 60px rgba(0,0,0,0.25);">
@@ -369,34 +420,10 @@
           <p style="text-align:center;color:rgba(255,255,255,0.7);font-size:11px;margin-top:16px;">Simpan/bookmark halaman ini untuk akses selanjutnya.</p>
         </div>
       </div>
-      <nav class="portal-bottom-nav" aria-label="Loncat ke bagian">
-        <div class="portal-bottom-nav-inner">
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecHadir" aria-label="Kehadiran">
-            <span class="bn-icon"><i data-lucide="check-circle-2"></i></span><span>Hadir</span>
-          </button>
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecNilai" aria-label="Perkembangan/Nilai">
-            <span class="bn-icon"><i data-lucide="sprout"></i></span><span>Nilai</span>
-          </button>
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecCatatan" aria-label="Catatan Guru">
-            <span class="bn-icon"><i data-lucide="sticky-note"></i></span><span>Catatan</span>
-          </button>
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecInfaq" aria-label="Infaq">
-            <span class="bn-icon"><i data-lucide="wallet"></i></span><span>Infaq</span>
-          </button>
-        </div>
-      </nav>`;
+      ${navPortalHtml()}`;
       document.body.insertAdjacentHTML('afterbegin', portalHTML);
       if (typeof lucide !== 'undefined') lucide.createIcons();
-      document.querySelectorAll('.portal-bottom-nav-item[data-target-sec]').forEach(tombol => {
-        tombol.addEventListener('click', () => {
-          const target = document.getElementById(tombol.dataset.targetSec);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            document.querySelectorAll('.portal-bottom-nav-item').forEach(t => t.classList.remove('active'));
-            tombol.classList.add('active');
-          }
-        });
-      });
+      pasangNavPortal();
       const content = document.getElementById('portalOrtuContent');
 
       if (!studentId || !token) {
@@ -490,6 +517,7 @@
     async function tampilkanDataPortal(student, studentId) {
       const content = document.getElementById('portalOrtuContent');
       content.innerHTML = `<div style="text-align:center;padding:30px 0;color:#6b7280;">⏳ Memuat data ananda...</div>`;
+      tampilkanNavPortal(false);
       try {
         const periode = getMonth();
 
@@ -606,6 +634,8 @@
             <p style="font-size:11px;color:#78350f;">Total setor: Rp ${totalSetor.toLocaleString('id-ID')}</p>
           </div>
         `;
+        tampilkanNavPortal(true);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
       } catch (error) {
         console.error('Error loading portal data:', error);
         content.innerHTML = `<div style="text-align:center;padding:10px;"><div style="font-size:48px;">❌</div><h3 style="font-weight:700;">Gagal Memuat Data</h3><p style="color:#6b7280;font-size:13px;">Terjadi kesalahan atau koneksi internet bermasalah. Silakan coba lagi.</p></div>`;
@@ -774,9 +804,7 @@
       const loginHTML = `
       <div id="loginPage" style="display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;background:linear-gradient(135deg,#0f3b2c 0%,#1a5c3e 100%);padding:20px;">
         <div class="login-card" style="background-color:white;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:14px 14px, calc(100% - 14px) 14px, 14px calc(100% - 14px), calc(100% - 14px) calc(100% - 14px);background-size:20px 20px;padding:44px 36px;border-radius:24px;max-width:480px;width:100%;box-shadow:0 0 0 2px #0f3b2c, 0 0 0 6px #fff, 0 0 0 7px #c9a227, 0 20px 60px rgba(0,0,0,0.3);text-align:center;">
-          <div style="width:100px;height:100px;border-radius:16px;background:linear-gradient(135deg,#0f3b2c,#1a5c3e);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;overflow:hidden;">
-            <img src="logo/logo-lembaga.png" alt="Logo lembaga" style="width:92%;height:92%;object-fit:contain;" onerror="this.onerror=null; var p=this.parentElement; p.innerHTML='🧸'; p.style.fontSize='48px'; p.style.color='white';">
-          </div>
+          <div style="display:flex;justify-content:center;margin:0 auto 16px;">${logoHtml(104)}</div>
           <h2 style="font-size:27px;font-weight:800;color:#0f3b2c;">SI MAMBA</h2>
           <p style="color:#6b7280;margin-bottom:8px;">RA Mambaul Ulum</p>
           <div id="loginStatus" style="font-size:12px;color:#d97706;margin-bottom:16px;">⏳ Menghubungkan ke Firebase...</div>
@@ -920,9 +948,7 @@
           <p style="color:#fff;font-weight:700;">${escapeHtml(namaSekolah)}</p>
         </div>
         <div style="background-color:white;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:14px 14px, calc(100% - 14px) 14px, 14px calc(100% - 14px), calc(100% - 14px) calc(100% - 14px);background-size:20px 20px;padding:44px 36px;border-radius:24px;max-width:480px;width:100%;box-shadow:0 0 0 2px #0f3b2c, 0 0 0 6px #fff, 0 0 0 7px #c9a227, 0 20px 60px rgba(0,0,0,0.3);text-align:center;">
-          <div style="width:100px;height:100px;border-radius:16px;background:linear-gradient(135deg,#0f3b2c,#1a5c3e);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;overflow:hidden;">
-            <img src="logo/logo-lembaga.png" alt="Logo" style="width:92%;height:92%;object-fit:contain;" onerror="this.onerror=null; var p=this.parentElement; p.innerHTML='🧸'; p.style.fontSize='48px'; p.style.color='white';">
-          </div>
+          <div style="display:flex;justify-content:center;margin:0 auto 16px;">${logoHtml(104)}</div>
           <div id="welcomePengumuman" class="marquee-container" style="display:none;margin-bottom:16px;border-radius:12px;overflow:hidden;background:#fef3c7;padding:8px 12px;color:#92400e;font-size:12px;font-weight:600;"></div>
           ${lanjutkanHtml}
           <button class="btn btn-primary" style="width:100%;margin-bottom:10px;padding:14px;font-size:15px;" onclick="document.getElementById('welcomeScreen').remove(); initLoginPage();"><i data-lucide="graduation-cap" style="width:16px;height:16px;vertical-align:-3px;margin-right:2px;"></i> Saya Guru / Staf</button>
@@ -964,9 +990,7 @@
       <div id="portalOrtuScreen" style="min-height:100vh;min-height:100dvh;background:linear-gradient(135deg,#0f3b2c 0%,#1a5c3e 100%);padding:16px;padding-bottom:calc(74px + env(safe-area-inset-bottom));">
         <div style="max-width:480px;margin:0 auto;">
           <div style="text-align:center;color:white;padding:24px 0 16px;">
-            <div style="width:70px;height:70px;border-radius:16px;background:linear-gradient(135deg,#0f3b2c,#1a5c3e);display:flex;align-items:center;justify-content:center;margin:0 auto;overflow:hidden;">
-              <img src="logo/logo-lembaga.png" alt="Logo lembaga" style="width:92%;height:92%;object-fit:contain;" onerror="this.onerror=null; var p=this.parentElement; p.innerHTML='🧸'; p.style.fontSize='34px'; p.style.color='white';">
-            </div>
+            <div style="display:flex;justify-content:center;margin:0 auto;">${logoHtml(76)}</div>
             <h2 style="font-weight:800;margin-top:4px;">Portal Orang Tua</h2>
           </div>
           <div id="portalOrtuContent" style="background-color:white;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:14px 14px, calc(100% - 14px) 14px, 14px calc(100% - 14px), calc(100% - 14px) calc(100% - 14px);background-size:20px 20px;border-radius:20px;padding:24px;box-shadow:0 0 0 2px #0f3b2c, 0 0 0 6px #fff, 0 0 0 7px #c9a227, 0 20px 60px rgba(0,0,0,0.25);">
@@ -974,39 +998,11 @@
           </div>
         </div>
       </div>
-      <nav class="portal-bottom-nav" aria-label="Loncat ke bagian">
-        <div class="portal-bottom-nav-inner">
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecHadir" aria-label="Kehadiran">
-            <span class="bn-icon"><i data-lucide="check-circle-2"></i></span><span>Hadir</span>
-          </button>
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecNilai" aria-label="Perkembangan/Nilai">
-            <span class="bn-icon"><i data-lucide="sprout"></i></span><span>Nilai</span>
-          </button>
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecCatatan" aria-label="Catatan Guru">
-            <span class="bn-icon"><i data-lucide="sticky-note"></i></span><span>Catatan</span>
-          </button>
-          <button class="portal-bottom-nav-item" data-target-sec="portalSecInfaq" aria-label="Infaq">
-            <span class="bn-icon"><i data-lucide="wallet"></i></span><span>Infaq</span>
-          </button>
-        </div>
-      </nav>`;
+      ${navPortalHtml()}`;
       document.body.insertAdjacentHTML('afterbegin', html);
       if (typeof lucide !== 'undefined') lucide.createIcons();
 
-      // Loncat-scroll ke section yang dipilih. Dicek berkala karena isi
-      // section (id-id di atas) baru ada setelah tampilkanDataPortal()
-      // selesai memuat data dari Firebase (async), bukan langsung saat
-      // kerangka ini dibuat.
-      document.querySelectorAll('.portal-bottom-nav-item[data-target-sec]').forEach(tombol => {
-        tombol.addEventListener('click', () => {
-          const target = document.getElementById(tombol.dataset.targetSec);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            document.querySelectorAll('.portal-bottom-nav-item').forEach(t => t.classList.remove('active'));
-            tombol.classList.add('active');
-          }
-        });
-      });
+      pasangNavPortal();
     }
 
     function lanjutkanPortalTerakhir() {
@@ -1034,6 +1030,7 @@
     function mulaiPortalOrtu() {
       document.getElementById('welcomeScreen')?.remove();
       if (!document.getElementById('portalOrtuScreen')) tampilkanKerangkaPortal();
+      tampilkanNavPortal(false);
       const content = document.getElementById('portalOrtuContent');
       content.innerHTML = `
         <div style="text-align:center;padding:10px 0;">
@@ -1098,6 +1095,7 @@
 
     function tampilkanFormPinPortal(studentId, student) {
       const content = document.getElementById('portalOrtuContent');
+      tampilkanNavPortal(false);
       const sudahAdaPin = !!student.portal_pin_hash;
       if (sudahAdaPin) {
         content.innerHTML = `

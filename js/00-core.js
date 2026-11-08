@@ -86,6 +86,13 @@
     // ============================================================
     // UTILITY FUNCTIONS
     // ============================================================
+    // Logo lembaga (komponen .app-logo di main.css). ukuran = px; gaya = CSS tambahan opsional.
+    // Gagal memuat file -> otomatis tampil 🧸 (kelas is-fallback), bukan ikon gambar rusak.
+    function logoHtml(ukuran, gaya) {
+      const u = Number(ukuran) || 72;
+      return `<span class="app-logo" style="--sz:${u}px;${gaya || ''}"><img src="logo/logo-lembaga.png" alt="Logo RA Mambaul Ulum" onerror="this.style.display='none';this.parentNode.classList.add('is-fallback')"></span>`;
+    }
+
     // Semua tanggal/waktu di aplikasi ini memakai WIB (Asia/Jakarta) secara
     // eksplisit — supaya tidak tergantung timezone perangkat/browser (yang bisa
     // beda kalau device salah setting atau diakses dari luar negeri), dan supaya

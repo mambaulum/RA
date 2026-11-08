@@ -486,9 +486,9 @@
         preview.innerHTML = `
           <div class="kop-surat">
             <div class="logo-kop">
-              <div class="logo-kop-placeholder">📚</div>
+              <img class="logo-kop-img" src="${new URL('logo/logo-lembaga.png', document.baseURI).href}" alt="Logo" onerror="this.style.display='none'">
               <div>
-                <div class="nama-sekolah">RA MAMBAAUL ULUM</div>
+                <div class="nama-sekolah">RA MAMBAUL ULUM</div>
                 <div class="alamat-sekolah">Jl. Pendidikan No. 123, Kota Pendidikan</div>
               </div>
             </div>
@@ -538,7 +538,7 @@
           body { font-family:'Times New Roman',serif; font-size:14px; line-height:1.8; padding:30px; }
           .kop-surat { text-align:center; padding:20px 0 10px 0; border-bottom:3px double #1a3a5c; margin-bottom:20px; }
           .kop-surat .logo-kop { display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:6px; }
-          .kop-surat .logo-kop-placeholder { width:60px; height:60px; border-radius:50%; background:#0f3b2c; display:flex; align-items:center; justify-content:center; font-size:28px; color:white; }
+          .kop-surat .logo-kop-img { width:64px; height:64px; object-fit:contain; }
           .kop-surat .nama-sekolah { font-size:20px; font-weight:700; color:#1a3a5c; letter-spacing:2px; }
           .kop-surat .judul-surat { font-size:16px; font-weight:700; text-decoration:underline; margin-top:12px; letter-spacing:1px; }
           table { border-collapse:collapse; }
