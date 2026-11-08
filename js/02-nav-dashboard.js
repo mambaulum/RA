@@ -106,6 +106,9 @@
         document.getElementById('statusAlpa').textContent = alpa;
         await loadPengumumanMarquee();
         renderChartKehadiranBulanan(attendanceAll, myKelas ? students : null);
+        // Kepala dashboard (logo + nama madrasah) hanya untuk Admin/Kepala; guru langsung melihat angka
+        const headerBrand = document.getElementById('dashboardHeaderBrand');
+        if (headerBrand) headerBrand.style.display = (currentRole === 'admin' || currentRole === 'kepsek') ? '' : 'none';
         const kepsekSection = document.getElementById('dashboardKepsekSection');
         if (kepsekSection) {
           const bolehLihat = currentRole === 'admin' || currentRole === 'kepsek';

@@ -96,14 +96,17 @@
             if (records[id]?.pulang?.pulang_awal) pulangAwal++;
           }
           const persen = tercatat > 0 ? (hadir / tercatat) * 100 : 0;
-          semuaData[id] = { nama: teacher.nama || '-', hadir, telat, pulangAwal, persen };
+          // Honor bulanan tetap (mis. Kepala): tidak dihitung dari daftar hadir
+          const bulanan = parseInt(teacher.honor_bulanan, 10) > 0 ? parseInt(teacher.honor_bulanan, 10) : 0;
+          const kepala = teacher.jabatan === 'kepala';
+          semuaData[id] = { nama: teacher.nama || '-', hadir, telat, pulangAwal, persen, bulanan, kepala, tetap: kepala || bulanan > 0 };
         }
 
         // Tentukan Guru Terajin: % kehadiran tertinggi; kalau seri, yang
         // jumlah hari hadirnya lebih banyak menang; kalau masih seri, urut nama.
         let terajinId = null;
         if (bonusTerajinNominal > 0 && tercatat > 0) {
-          const kandidat = Object.entries(semuaData).filter(([, d]) => d.hadir > 0);
+          const kandidat = Object.entries(semuaData).filter(([, d]) => d.hadir > 0 && !d.tetap); // honor bulanan tetap tidak ikut Guru Terajin
           if (kandidat.length > 0) {
             kandidat.sort((a, b) => b[1].persen - a[1].persen || b[1].hadir - a[1].hadir || a[1].nama.localeCompare(b[1].nama));
             terajinId = kandidat[0][0];
@@ -130,19 +133,22 @@
         const dataUntukSlip = [];
         for (const [id, teacher] of entries) {
           const d = semuaData[id];
-          const honorPerHari = teacher.honor_harian ? parseInt(teacher.honor_harian) : honorDefault;
-          const totalKotor = d.hadir * honorPerHari;
-          const potongan = (d.telat * potonganTelatHarian) + (d.pulangAwal * potonganPulangAwalHarian);
-          const bonus = id === terajinId ? bonusTerajinNominal : 0;
+          const tetap = d.tetap;
+          const honorPerHari = tetap ? 0 : (teacher.honor_harian ? parseInt(teacher.honor_harian) : honorDefault);
+          const totalKotor = tetap ? d.bulanan : d.hadir * honorPerHari;
+          const potongan = tetap ? 0 : (d.telat * potonganTelatHarian) + (d.pulangAwal * potonganPulangAwalHarian);
+          const bonus = (!tetap && id === terajinId) ? bonusTerajinNominal : 0;
           const totalBersih = Math.max(0, totalKotor - potongan) + bonus;
           grandTotalKotor += totalKotor; grandTotalPotongan += potongan; grandTotalBonus += bonus; grandTotalBersih += totalBersih;
           dataUntukSlip.push({
-            nama: teacher.nama || '-', mapel: teacher.mapel || '-', nip: teacher.nip || '-',
+            nama: teacher.nama || '-', mapel: teacher.mapel || '-', nip: teacher.nip || '-', kepala: d.kepala,
             hadir: d.hadir, honorPerHari, totalKotor, telat: d.telat, pulangAwal: d.pulangAwal,
-            potonganTelatHarian, potonganPulangAwalHarian, potongan, isTerajin: id === terajinId, bonus, totalBersih
+            potonganTelatHarian, potonganPulangAwalHarian, potongan, isTerajin: id === terajinId, bonus, totalBersih, tetap
           });
-          html += `<tr${id === terajinId ? ' style="background:#f0fdf4;"' : ''}><td>${no++}</td><td>${escapeHtml(teacher.nama||'-')}${id === terajinId ? ' 🏆' : ''}</td><td>${escapeHtml(teacher.mapel||'-')}</td><td>${d.hadir}</td><td>Rp ${honorPerHari.toLocaleString('id-ID')}${!teacher.honor_harian ? ' <span style="font-size:10px;color:#9ca3af;">(default)</span>' : ''}</td><td>Rp ${totalKotor.toLocaleString('id-ID')}</td>`;
-          if (adaPotongan) {
+          html += `<tr${id === terajinId ? ' style="background:#f0fdf4;"' : ''}><td>${no++}</td><td>${escapeHtml(teacher.nama||'-')}${id === terajinId ? ' 🏆' : ''}${d.kepala ? ' 👑' : ''}</td><td>${escapeHtml(teacher.mapel||'-')}</td><td>${tetap ? '<span style="color:#9ca3af;">—</span>' : d.hadir}</td><td>${tetap ? '<span style="font-size:11px;background:#e0f2fe;color:#075985;padding:2px 8px;border-radius:10px;">Bulanan tetap</span>' + (d.bulanan > 0 ? '' : ' <span style="font-size:10px;color:#dc2626;">belum ditetapkan</span>') : 'Rp ' + honorPerHari.toLocaleString('id-ID') + (!teacher.honor_harian ? ' <span style="font-size:10px;color:#9ca3af;">(default)</span>' : '')}</td><td>Rp ${totalKotor.toLocaleString('id-ID')}</td>`;
+          if (adaPotongan && tetap) {
+            html += '<td>—</td><td>—</td><td>—</td>';
+          } else if (adaPotongan) {
             html += `<td style="${d.telat > 0 ? 'color:#dc2626;' : ''}">${d.telat}</td><td style="${d.pulangAwal > 0 ? 'color:#d97706;' : ''}">${d.pulangAwal}</td><td style="color:#dc2626;">${potongan > 0 ? '-Rp ' + potongan.toLocaleString('id-ID') : '-'}</td>`;
           }
           if (adaBonus) {
@@ -195,11 +201,14 @@
           doc.setFontSize(10);
           doc.text(`Nama`, marginX, y); doc.text(`: ${r.nama}`, marginX + 22, y); y += 5.5;
           doc.text(`Mapel`, marginX, y); doc.text(`: ${r.mapel}`, marginX + 22, y); y += 5.5;
+          if (r.kepala) { doc.text(`Jabatan`, marginX, y); doc.text(`: Kepala Madrasah`, marginX + 22, y); y += 5.5; }
           if (r.nip && r.nip !== '-') { doc.text(`NIP`, marginX, y); doc.text(`: ${r.nip}`, marginX + 22, y); y += 5.5; }
           if (r.isTerajin) { doc.setTextColor(5, 150, 105); doc.text(`🏆 Guru Terajin bulan ini`, marginX, y); doc.setTextColor(0, 0, 0); y += 5.5; }
           y += 3;
 
-          const rincian = [['Hari Hadir', `${r.hadir} hari`], ['Honor per Hari', `Rp ${r.honorPerHari.toLocaleString('id-ID')}`], ['Honor Kotor', `Rp ${r.totalKotor.toLocaleString('id-ID')}`]];
+          const rincian = r.tetap
+            ? [['Honor Bulanan Tetap', `Rp ${r.totalKotor.toLocaleString('id-ID')}`]]
+            : [['Hari Hadir', `${r.hadir} hari`], ['Honor per Hari', `Rp ${r.honorPerHari.toLocaleString('id-ID')}`], ['Honor Kotor', `Rp ${r.totalKotor.toLocaleString('id-ID')}`]];
           if (r.telat > 0) rincian.push([`Potongan Telat (${r.telat} hari x Rp ${r.potonganTelatHarian.toLocaleString('id-ID')})`, `-Rp ${(r.telat * r.potonganTelatHarian).toLocaleString('id-ID')}`]);
           if (r.pulangAwal > 0) rincian.push([`Potongan Pulang Awal (${r.pulangAwal} hari x Rp ${r.potonganPulangAwalHarian.toLocaleString('id-ID')})`, `-Rp ${(r.pulangAwal * r.potonganPulangAwalHarian).toLocaleString('id-ID')}`]);
           if (r.bonus > 0) rincian.push(['Bonus Guru Terajin 🏆', `+Rp ${r.bonus.toLocaleString('id-ID')}`]);

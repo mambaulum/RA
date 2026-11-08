@@ -15,6 +15,8 @@
           <div style="margin-bottom:12px;"><label class="label">Jenis Kelamin</label><select class="field" id="newGuruJK"><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
           <div style="margin-bottom:12px;"><label class="label">No. HP</label><input type="text" class="field" id="newGuruHP" placeholder="Contoh: 081234567890" maxlength="15"></div>
           <div style="margin-bottom:16px;"><label class="label">Honor per Hari (Rp) — opsional</label><input type="number" class="field" id="newGuruHonor" placeholder="Kosongkan untuk pakai default"></div>
+          <div style="margin-bottom:12px;"><label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;"><input type="checkbox" id="newGuruKepala"> 👑 Menjabat sebagai Kepala Madrasah</label><p style="font-size:11px;color:#6b7280;margin-top:4px;">Centang juga bila Kepala sekaligus mengajar (merangkap guru). Honornya memakai honor bulanan tetap di bawah, bukan dari daftar hadir.</p></div>
+          <div style="margin-bottom:16px;"><label class="label">Honor Bulanan Tetap (Rp) — khusus Kepala, opsional</label><input type="number" class="field" id="newGuruHonorBulanan" min="0" placeholder="Isi bila honor ditetapkan per bulan, bukan dari daftar hadir"><p style="font-size:11px;color:#6b7280;margin-top:4px;">Bila diisi, honor orang ini TIDAK dihitung dari kehadiran (tanpa potongan, tanpa bonus Terajin) dan nominal ini yang dibayar tiap bulan.</p></div>
           <div style="margin-bottom:16px;">
             <label class="label">Kelas yang Diampu (untuk Absensi/Nilai/Jurnal)</label>
             <div style="display:flex;gap:14px;flex-wrap:wrap;">
@@ -36,6 +38,8 @@
       const jk = document.getElementById('newGuruJK').value;
       const hp = document.getElementById('newGuruHP').value.trim();
       const honor = document.getElementById('newGuruHonor').value.trim();
+      const honorBulanan = parseInt(document.getElementById('newGuruHonorBulanan').value, 10);
+      if (document.getElementById('newGuruHonorBulanan').value.trim() !== '' && (isNaN(honorBulanan) || honorBulanan < 0)) { showToast('Honor bulanan harus angka 0 atau lebih!', 'warning'); return; }
       const kelasDiampu = Array.from(document.querySelectorAll('.new-guru-kelas:checked')).map(el => el.value);
       if (!nama) { showToast('Nama guru wajib diisi!', 'warning'); return; }
       if (!validateNama(nama)) { showToast('Nama harus 2-100 karakter!', 'error'); return; }
@@ -46,6 +50,8 @@
           created_at: firebase.database.ServerValue.TIMESTAMP
         };
         if (honor) payload.honor_harian = parseInt(honor) || null;
+        if (honorBulanan > 0) payload.honor_bulanan = honorBulanan;
+        if (document.getElementById('newGuruKepala').checked) payload.jabatan = 'kepala';
         if (kelasDiampu.length > 0) payload.kelas_diampu = kelasDiampu;
         await db.ref('teachers').push(payload);
         showToast('✅ Guru berhasil ditambahkan!', 'success');
@@ -70,6 +76,8 @@
           <div style="margin-bottom:12px;"><label class="label">Jenis Kelamin</label><select class="field" id="editGuruJK"><option value="L" ${teacher.jk==='L'?'selected':''}>Laki-laki</option><option value="P" ${teacher.jk==='P'?'selected':''}>Perempuan</option></select></div>
           <div style="margin-bottom:12px;"><label class="label">No. HP</label><input type="text" class="field" id="editGuruHP" maxlength="15"></div>
           <div style="margin-bottom:16px;"><label class="label">Honor per Hari (Rp) — opsional</label><input type="number" class="field" id="editGuruHonor" placeholder="Kosongkan untuk pakai default"></div>
+          <div style="margin-bottom:12px;"><label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;"><input type="checkbox" id="editGuruKepala"> 👑 Menjabat sebagai Kepala Madrasah</label><p style="font-size:11px;color:#6b7280;margin-top:4px;">Centang juga bila Kepala sekaligus mengajar (merangkap guru). Honornya memakai honor bulanan tetap di bawah, bukan dari daftar hadir.</p></div>
+          <div style="margin-bottom:16px;"><label class="label">Honor Bulanan Tetap (Rp) — khusus Kepala, opsional</label><input type="number" class="field" id="editGuruHonorBulanan" min="0" placeholder="Isi bila honor ditetapkan per bulan, bukan dari daftar hadir"><p style="font-size:11px;color:#6b7280;margin-top:4px;">Bila diisi, honor orang ini TIDAK dihitung dari kehadiran (tanpa potongan, tanpa bonus Terajin) dan nominal ini yang dibayar tiap bulan.</p></div>
           <div style="margin-bottom:16px;">
             <label class="label">Kelas yang Diampu (untuk Absensi/Nilai/Jurnal)</label>
             <div style="display:flex;gap:14px;flex-wrap:wrap;">
@@ -86,6 +94,8 @@
       document.getElementById('editGuruMapel').value = teacher.mapel || '';
       document.getElementById('editGuruHP').value = teacher.no_hp || '';
       document.getElementById('editGuruHonor').value = teacher.honor_harian || '';
+      document.getElementById('editGuruHonorBulanan').value = teacher.honor_bulanan || '';
+      document.getElementById('editGuruKepala').checked = teacher.jabatan === 'kepala';
     }
 
     async function updateGuru(id) {
@@ -96,6 +106,8 @@
       const jk = document.getElementById('editGuruJK').value;
       const hp = document.getElementById('editGuruHP').value.trim();
       const honor = document.getElementById('editGuruHonor').value.trim();
+      const honorBulanan = parseInt(document.getElementById('editGuruHonorBulanan').value, 10);
+      if (document.getElementById('editGuruHonorBulanan').value.trim() !== '' && (isNaN(honorBulanan) || honorBulanan < 0)) { showToast('Honor bulanan harus angka 0 atau lebih!', 'warning'); return; }
       const kelasDiampu = Array.from(document.querySelectorAll('.edit-guru-kelas:checked')).map(el => el.value);
       if (!nama) { showToast('Nama guru wajib diisi!', 'warning'); return; }
       if (!validateNama(nama)) { showToast('Nama harus 2-100 karakter!', 'error'); return; }
@@ -103,6 +115,8 @@
         await db.ref(`teachers/${id}`).update({
           nama: sanitizeInput(nama), nip: sanitizeInput(nip || '-'), mapel: sanitizeInput(mapel || '-'),
           jk: sanitizeInput(jk), no_hp: sanitizeInput(hp || '-'), honor_harian: honor ? parseInt(honor) : null,
+          honor_bulanan: honorBulanan > 0 ? honorBulanan : null,
+          jabatan: document.getElementById('editGuruKepala').checked ? 'kepala' : null,
           kelas_diampu: kelasDiampu.length > 0 ? kelasDiampu : null,
           updated_at: firebase.database.ServerValue.TIMESTAMP
         });

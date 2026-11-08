@@ -139,7 +139,7 @@
                 ${index + 1}
               </div>
               <div>
-                <div style="font-weight:600;">${escapeHtml(teacher.nama || '-')}</div>
+                <div style="font-weight:600;">${escapeHtml(teacher.nama || '-')}${teacher.jabatan === 'kepala' ? ' <span style="font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;">👑 Kepala</span>' : ''}</div>
                 <div style="font-size:12px;color:#6b7280;">
                   ${escapeHtml(teacher.mapel || '-')} 
                   ${teacher.nip ? `• NIP: ${escapeHtml(teacher.nip)}` : ''}
