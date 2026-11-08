@@ -14,6 +14,7 @@
     function refreshAllData() { showToast('🔄 Merefresh data...', 'info'); showPage(currentPage); }
 
     function showDebug() {
+      if (currentRole !== 'admin') return;
       alert(`SI MAMBA v3.1-RA (SECURE)\nUser: ${currentUser?.nama || 'Not logged in'}\nRole: ${currentRole || 'None'}\nFirebase: ${isFirebaseConnected ? '✅ Online' : '❌ Offline'}\nPage: ${currentPage}`);
     }
 

@@ -423,7 +423,7 @@
             <td>${escapeHtml(val.mapel||'-')}</td>
             <td>${escapeHtml(val.guru||'-')}</td>
             <td class="jadwal-actions">
-              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteJadwal('${escapeHtml(id)}')">🗑️</button>
+              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteJadwal('${escapeJs(id)}')">🗑️</button>
             </td>
           </tr>
         `).join('');

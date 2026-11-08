@@ -189,6 +189,9 @@
       // Backup mengunduh SELURUH database -> hanya admin (juga dicek ulang di manualBackup()).
       const btnBackup = document.getElementById('btnBackupTopbar');
       if (btnBackup) btnBackup.style.display = (role === 'admin') ? '' : 'none';
+      // Debug menampilkan info internal -> hanya admin (tidak berguna bagi guru).
+      const btnDebug = document.getElementById('btnDebugTopbar');
+      if (btnDebug) btnDebug.style.display = (role === 'admin') ? '' : 'none';
     }
 
     function logout() {
