@@ -956,3 +956,47 @@ body.dark-mode .pagination select { background: #1e293b; border-color: #334155; 
 .honor-settings > summary span { font-weight: 400; font-size: 12px; color: #6b7280; }
 .honor-settings[open] { padding-bottom: 4px; }
 body.dark-mode .honor-settings { border-color: #334155; }
+
+
+/* ==========================================================
+   16. MENU SIDEBAR BERKELOMPOK (bisa dilipat)
+   ========================================================== */
+.menu-group-title { width: 100%; display: flex; align-items: center; justify-content: space-between; background: none; border: none; color: inherit; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .65; padding: 10px 20px 4px; text-align: left; }
+.menu-group-title:hover { opacity: 1; }
+.menu-group-title .mg-chev { font-style: normal; transition: transform .2s; }
+.menu-group.collapsed .mg-chev { transform: rotate(-90deg); }
+.menu-group.collapsed .menu-group-items { display: none; }
+.menu-group + .menu-group { border-top: 1px solid rgba(255,255,255,.07); margin-top: 4px; }
+@media (max-width: 768px) {
+  .menu-group-title { padding: 8px 16px 3px; }
+}
+.menu-group[data-group="utama"] .menu-group-title { display: none; }
+
+
+/* ==========================================================
+   17. 7 KEBIASAAN ANAK INDONESIA HEBAT
+   ========================================================== */
+.kb-row { border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px 10px; margin-bottom: 8px; background: #fff; }
+.kb-row.tercatat { border-color: #86efac; background: #f0fdf4; }
+.kb-nama { display: flex; flex-direction: column; margin-bottom: 6px; }
+.kb-nama span { font-size: 11px; color: #6b7280; }
+.kb-chips, .kb-semua-bar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.kb-semua-bar { grid-template-columns: auto repeat(7, 1fr); align-items: center; margin-bottom: 8px; }
+.kb-semua-label { font-size: 10px; color: #6b7280; max-width: 56px; line-height: 1.1; }
+.kb-chip { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 46px; padding: 3px 0; border: 1.5px solid #d1d5db; border-radius: 10px; background: #f9fafb; cursor: pointer; font-family: inherit; color: #374151; }
+.kb-chip span { font-size: 18px; line-height: 1; filter: grayscale(1); opacity: .55; }
+.kb-chip small { font-size: 9px; line-height: 1; }
+.kb-chip.on { border-color: #059669; background: #d1fae5; color: #065f46; font-weight: 700; }
+.kb-chip.on span { filter: none; opacity: 1; }
+.kb-semua { background: #eef2ff; border-style: dashed; }
+.kb-tabel { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kb-tabel th, .kb-tabel td { border: 1px solid #e5e7eb; padding: 6px 4px; text-align: center; white-space: nowrap; }
+.kb-tabel th:first-child, .kb-tabel td:first-child { position: sticky; left: 0; background: #fff; }
+.kb-hijau { background: #dcfce7; color: #166534; font-weight: 600; }
+.kb-merah { background: #fee2e2; color: #991b1b; }
+body.dark-mode .kb-row { background: #1e293b; border-color: #334155; }
+body.dark-mode .kb-row.tercatat { background: #12302a; border-color: #166534; }
+body.dark-mode .kb-chip { background: #0f172a; border-color: #475569; color: #e2e8f0; }
+body.dark-mode .kb-chip.on { background: #064e3b; color: #a7f3d0; border-color: #10b981; }
+body.dark-mode .kb-tabel th, body.dark-mode .kb-tabel td { border-color: #334155; }
+body.dark-mode .kb-tabel th:first-child, body.dark-mode .kb-tabel td:first-child { background: #1e293b; }
