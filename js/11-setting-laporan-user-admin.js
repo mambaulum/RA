@@ -594,8 +594,10 @@
               <div class="log-item">
                 <span class="log-icon">📋</span>
                 <span class="log-action">${escapeHtml(log.action||'-')}</span>
-                <span class="log-user">${escapeHtml(log.user||'system')}${log.role ? ` (${escapeHtml(log.role)})` : ''}</span>
-                <span class="log-time">${formatTime(log.timestamp)}</span>
+                <div class="log-meta">
+                  <span class="log-user">${escapeHtml(log.user||'system')}${log.role ? ` (${escapeHtml(log.role)})` : ''}</span>
+                  <span class="log-time">${formatTime(log.timestamp)}</span>
+                </div>
               </div>
             `).join('');
           }
