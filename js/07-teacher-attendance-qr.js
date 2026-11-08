@@ -61,8 +61,6 @@
         const users = usersSnap.val() || {};
         window.__linkedTeacherIds = new Set(Object.values(users).map(u => u.teacher_id).filter(Boolean));
 
-        console.log('📊 DATA GURU:', teachers);
-        console.log('📊 JUMLAH GURU:', Object.keys(teachers).length);
 
         allTeachers = Object.entries(teachers).map(([key, val]) => ({ ...val, id: key }));
         allTeacherAttendance = attendance;
@@ -85,7 +83,6 @@
       const container = document.getElementById('teacherAttendanceList');
       if (!container) return;
 
-      console.log('📊 All Teachers untuk render:', allTeachers);
 
       if (!allTeachers || allTeachers.length === 0) {
         container.innerHTML = `
