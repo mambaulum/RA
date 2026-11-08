@@ -224,7 +224,7 @@
        supaya layar awal (splash) bisa tampil sebelum ~1,5 MB script selesai diunduh. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles/main.css?v=20" />
+  <link rel="stylesheet" href="styles/main.css?v=22" />
 </head>
 <body>
 
@@ -1422,18 +1422,18 @@
           <div class="pengumuman-list" id="pengumumanList"><div style="text-align:center;padding:12px;color:#6b7280;">Memuat pengumuman...</div></div>
           <hr style="margin:20px 0;border-color:#e5e7eb;">
           <h4 style="font-weight:600;margin-bottom:12px;">📜 Log Aktivitas</h4>
-          <div id="logList" style="max-height:300px;overflow-y:auto;"><div style="text-align:center;padding:12px;color:#6b7280;">Memuat log...</div></div>
+          <div id="logList" class="log-list" style="max-height:300px;overflow-y:auto;"><div style="text-align:center;padding:12px;color:#6b7280;">Memuat log...</div></div>
           <hr style="margin:20px 0;border-color:#e5e7eb;">
           <h4 style="font-weight:600;margin-bottom:12px;">🔧 Setup Awal (Opsional)</h4>
           <p style="font-size:12px;color:#6b7280;margin-bottom:8px;">Setup manual, hanya berjalan jika data terkait masih kosong — tidak akan menimpa data yang sudah ada.</p>
           <div style="margin-bottom:10px;">
             <label class="label">📚 Kurikulum PAUD yang Digunakan</label>
-            <select class="field" id="kurikulumPaudSelect" style="max-width:320px;">
-              <option value="k13">Kurikulum 2013 PAUD (6 Aspek Perkembangan)</option>
-              <option value="merdeka">Kurikulum Merdeka PAUD (3 Elemen Capaian Pembelajaran)</option>
+            <select class="field admin-select" id="kurikulumPaudSelect">
+              <option value="k13">Kurikulum 2013 (6 Aspek)</option>
+              <option value="merdeka">Kurikulum Merdeka (3 Elemen CP)</option>
             </select>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div class="admin-actions">
             <button class="btn btn-primary" onclick="guardedCall(this, saveKurikulumPaud)">💾 Simpan Pilihan Kurikulum</button>
             <button class="btn btn-soft" onclick="createDefaultAspek()">📚 Buat Aspek Perkembangan Default</button>
             <button class="btn btn-soft" onclick="createDefaultTeachers()">👨‍🏫 Buat Data Guru Contoh</button>
@@ -1441,11 +1441,11 @@
           <hr style="margin:20px 0;border-color:#e5e7eb;">
           <h4 style="font-weight:600;margin-bottom:12px;">🔁 Migrasi Data (Sekali Jalan)</h4>
           <p style="font-size:12px;color:#6b7280;margin-bottom:8px;">Backfill field <code>guruKey</code> ke data lama yang dibuat sebelum field ini ada. Aman dijalankan berkali-kali — record yang sudah punya <code>guruKey</code> otomatis dilewati, tidak ditimpa ulang.</p>
-          <button class="btn btn-warning" onclick="guardedCall(this, migrasiGuruKey)">🔁 Jalankan Migrasi guruKey</button>
+          <button class="btn btn-warning admin-wide" onclick="guardedCall(this, migrasiGuruKey)">🔁 Jalankan Migrasi guruKey</button>
           <div id="migrasiGuruKeyResult" style="margin-top:10px;font-size:13px;"></div>
           <hr style="margin:20px 0;border-color:#e5e7eb;">
           <h4 style="font-weight:600;margin-bottom:12px;">💾 Backup & Restore</h4>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div class="admin-actions admin-actions-row">
             <button class="btn btn-success" onclick="manualBackup()">💾 Backup</button>
             <button class="btn btn-warning" onclick="restoreData()">📂 Restore</button>
           </div>
