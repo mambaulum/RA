@@ -48,7 +48,7 @@
               <input type="checkbox" id="jam_extra_${jam.id}" ${jam.extra ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;">
               <span style="color:#7c3aed;font-weight:600;">⭐ Extra</span>
             </label>
-            <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="hapusJam('${escapeHtml(jam.id)}')">🗑️</button>
+            <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="hapusJam('${escapeJs(jam.id)}')">🗑️</button>
           </div>
         </div>
       `).join('');
@@ -368,12 +368,12 @@
           const linkedTeacher = user.teacher_id ? teachersDataCache[user.teacher_id] : null;
           sinkronCell = linkedTeacher
             ? `<span style="font-size:11px;background:#dcfce7;color:#065f46;padding:3px 8px;border-radius:10px;">🔗 ${escapeHtml(linkedTeacher.nama || '-')}</span>`
-            : `<span style="font-size:11px;background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:10px;">⚠️ Belum terhubung</span> <button class="btn btn-soft" style="padding:2px 8px;font-size:10px;min-height:24px;" onclick="linkUserToTeacher('${escapeHtml(id)}')">🔗 Hubungkan</button>`;
+            : `<span style="font-size:11px;background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:10px;">⚠️ Belum terhubung</span> <button class="btn btn-soft" style="padding:2px 8px;font-size:10px;min-height:24px;" onclick="linkUserToTeacher('${escapeJs(id)}')">🔗 Hubungkan</button>`;
         }
         const isPetugasInfaq = user.role === 'admin' ? true : !!user.petugas_infaq;
         const infaqCell = user.role === 'admin'
           ? '<span style="font-size:11px;color:#6b7280;">Selalu (Admin)</span>'
-          : `<button class="btn ${isPetugasInfaq ? 'btn-success' : 'btn-soft'}" style="padding:2px 10px;font-size:11px;min-height:26px;" onclick="togglePetugasInfaq('${escapeHtml(id)}', ${isPetugasInfaq})">${isPetugasInfaq ? '✅ Petugas' : '➕ Jadikan Petugas'}</button>`;
+          : `<button class="btn ${isPetugasInfaq ? 'btn-success' : 'btn-soft'}" style="padding:2px 10px;font-size:11px;min-height:26px;" onclick="togglePetugasInfaq('${escapeJs(id)}', ${isPetugasInfaq})">${isPetugasInfaq ? '✅ Petugas' : '➕ Jadikan Petugas'}</button>`;
         return `
         <tr>
           <td>${escapeHtml(user.nama||'-')}</td>
@@ -381,7 +381,7 @@
           <td>${user.pin_hash ? '<span style="font-size:11px;color:#059669;">🔒 Ter-enkripsi</span>' : (user.pin ? '<span style="font-size:11px;color:#d97706;">⚠️ Belum ter-enkripsi (akan otomatis saat login)</span>' : '<span style="font-size:11px;color:#9ca3af;">-</span>')}</td>
           <td>${sinkronCell}</td>
           <td>${infaqCell}</td>
-          <td>${id !== currentUser?.id ? `<button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteUser('${escapeHtml(id)}')">🗑️</button>` : '<span style="font-size:11px;color:#6b7280;">(Anda)</span>'}</td>
+          <td>${id !== currentUser?.id ? `<button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteUser('${escapeJs(id)}')">🗑️</button>` : '<span style="font-size:11px;color:#6b7280;">(Anda)</span>'}</td>
         </tr>
       `;
       }).join('');
@@ -512,7 +512,7 @@
             <label class="label">Pilih Data Guru</label>
             <select class="field" id="linkTeacherSelect"><option value="">-- Belum dikaitkan --</option></select>
           </div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => saveLinkUserToTeacher('${escapeHtml(userId)}'))">💾 Simpan</button><button class="btn btn-soft" onclick="document.getElementById('linkUserTeacherModal').remove()">Batal</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => saveLinkUserToTeacher('${escapeJs(userId)}'))">💾 Simpan</button><button class="btn btn-soft" onclick="document.getElementById('linkUserTeacherModal').remove()">Batal</button></div>
         </div>
       `;
       document.body.appendChild(modal);
@@ -576,7 +576,7 @@
                 <span class="teks">${escapeHtml(p.teks||'-')}</span>
                 <span class="meta">${escapeHtml(p.jenis||'umum')} • ${{semua:'Semua',guru:'Guru & Staf',ortu:'Orang Tua'}[p.target] || 'Semua'} • ${formatDate(p.tanggal)}</span>
                 <div class="aksi">
-                  <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;min-height:32px;" onclick="deletePengumuman('${escapeHtml(id)}')">🗑️</button>
+                  <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;min-height:32px;" onclick="deletePengumuman('${escapeJs(id)}')">🗑️</button>
                 </div>
               </div>
             `).join('');

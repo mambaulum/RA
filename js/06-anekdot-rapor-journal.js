@@ -77,7 +77,7 @@
           <p style="font-size:13px;color:#374151;margin-bottom:6px;">${escapeHtml(a.catatan || '')}</p>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:11px;color:#9ca3af;">Dicatat oleh: ${escapeHtml(a.guru || '-')}</span>
-            <button class="btn btn-danger" style="padding:1px 8px;font-size:11px;" onclick="deleteAnekdot('${escapeHtml(a.id)}')">🗑️ Hapus</button>
+            <button class="btn btn-danger" style="padding:1px 8px;font-size:11px;" onclick="deleteAnekdot('${escapeJs(a.id)}')">🗑️ Hapus</button>
           </div>
         </div>
       `).join('');
@@ -441,7 +441,7 @@
             <div style="font-size:13px;margin-top:4px;">${escapeHtml(j.materi || '-')}</div>
             <div style="font-size:12px;color:#6b7280;margin-top:4px;">👨‍🏫 ${escapeHtml(namaGuruTampil)} | Kelas ${escapeHtml(j.kelas || '-')}</div>
             <div style="margin-top:4px;">
-              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteJournal('${escapeHtml(j.id)}')">🗑️</button>
+              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteJournal('${escapeJs(j.id)}')">🗑️</button>
             </div>
           </div>
         `;

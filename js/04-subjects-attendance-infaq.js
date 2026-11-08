@@ -57,8 +57,8 @@
             <td><span class="role-badge" style="background:${s.kelompok === 'A' ? '#059669' : s.kelompok === 'B' ? '#2563eb' : '#7c3aed'};color:white;">${escapeHtml(s.kelompok || 'Umum')}</span></td>
             <td>${escapeHtml(s.guru || '-')}</td>
             <td>
-              <button class="btn btn-edit" style="padding:2px 10px;font-size:11px;" onclick="editSubject('${escapeHtml(s.id)}')">✏️</button>
-              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteSubject('${escapeHtml(s.id)}')">🗑️</button>
+              <button class="btn btn-edit" style="padding:2px 10px;font-size:11px;" onclick="editSubject('${escapeJs(s.id)}')">✏️</button>
+              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteSubject('${escapeJs(s.id)}')">🗑️</button>
             </td>
           </tr>
         `).join('');
@@ -130,7 +130,7 @@
           <div style="margin-bottom:12px;"><label class="label">Nama Aspek Perkembangan</label><input type="text" class="field" id="editMapelNama" maxlength="100"></div>
           <div style="margin-bottom:12px;"><label class="label">Kelompok</label><select class="field" id="editMapelKelompok"><option value="A" ${subject.kelompok==='A'?'selected':''}>Kelompok A (Umum)</option><option value="B" ${subject.kelompok==='B'?'selected':''}>Kelompok B (Keagamaan)</option><option value="C" ${subject.kelompok==='C'?'selected':''}>Kelompok C (Keterampilan)</option></select></div>
           <div style="margin-bottom:16px;"><label class="label">Guru Pengajar</label><input type="text" class="field" id="editMapelGuru" maxlength="100"></div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => updateSubject('${escapeHtml(id)}'))">💾 Update</button><button class="btn btn-soft" onclick="document.getElementById('editMapelModal').remove()">Batal</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => updateSubject('${escapeJs(id)}'))">💾 Update</button><button class="btn btn-soft" onclick="document.getElementById('editMapelModal').remove()">Batal</button></div>
         </div>
       `;
       document.body.appendChild(modal);
@@ -212,7 +212,7 @@
               <td>
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
                   ${['H','S','I','A'].map(s => `
-                    <button class="status-choice ${status === s ? 'selected' : ''}" data-status="${s}" onclick="setAttendance('${escapeHtml(id)}', '${s}', this)">
+                    <button class="status-choice ${status === s ? 'selected' : ''}" data-status="${s}" onclick="setAttendance('${escapeJs(id)}', '${s}', this)">
                       ${s === 'H' ? '✅' : s === 'S' ? '🤒' : s === 'I' ? '📝' : '❌'} ${s}
                     </button>
                   `).join('')}
@@ -221,7 +221,7 @@
               <td>
                 <input type="text" class="field" id="keterangan_${escapeHtml(id)}" style="padding:4px 8px;font-size:12px;width:120px;" 
                        placeholder="Keterangan" 
-                       onchange="updateAttendanceKeterangan('${escapeHtml(id)}', this.value)">
+                       onchange="updateAttendanceKeterangan('${escapeJs(id)}', this.value)">
                 ${attendance[id]?.by ? `<div style="font-size:10px;color:#9ca3af;margin-top:2px;">oleh ${escapeHtml(attendance[id].by)}</div>` : ''}
               </td>
             </tr>
@@ -469,7 +469,7 @@
         const weekCells = r.weekStatus.map((paid, i) => {
           const w = i + 1;
           return `<td style="text-align:center;">
-            <button class="status-choice" style="min-width:34px;${paid ? 'background:#dcfce7;border-color:#059669;color:#065f46;' : ''}" onclick="toggleInfaqMinggu('${escapeHtml(r.id)}', ${w})" title="${paid ? 'Sudah setor, klik untuk batalkan' : 'Belum setor, klik untuk tandai lunas'}">
+            <button class="status-choice" style="min-width:34px;${paid ? 'background:#dcfce7;border-color:#059669;color:#065f46;' : ''}" onclick="toggleInfaqMinggu('${escapeJs(r.id)}', ${w})" title="${paid ? 'Sudah setor, klik untuk batalkan' : 'Belum setor, klik untuk tandai lunas'}">
               ${paid ? '✅' : '⬜'}
             </button>
           </td>`;
@@ -483,7 +483,7 @@
           : '';
         const belumLunas = infaqWeeksCount > 0 && r.weeksPaid < infaqWeeksCount;
         const tombolWA = belumLunas
-          ? `<button class="btn btn-success" style="padding:2px 8px;font-size:11px;" onclick="kirimReminderInfaqWA('${escapeHtml(r.id)}')" title="${r.noWA ? 'Kirim reminder via WhatsApp' : 'No. WA belum diisi - klik untuk lihat caranya'}">📲 WA</button>`
+          ? `<button class="btn btn-success" style="padding:2px 8px;font-size:11px;" onclick="kirimReminderInfaqWA('${escapeJs(r.id)}')" title="${r.noWA ? 'Kirim reminder via WhatsApp' : 'No. WA belum diisi - klik untuk lihat caranya'}">📲 WA</button>`
           : '';
         return `<tr>
           <td>${idx + 1}</td>

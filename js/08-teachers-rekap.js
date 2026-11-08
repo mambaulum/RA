@@ -77,7 +77,7 @@
             </div>
             <p style="font-size:11px;color:#6b7280;margin-top:4px;">Kosongkan semua kalau guru ini boleh mengelola SEMUA kelas (mis. Kepala Sekolah).</p>
           </div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => updateGuru('${escapeHtml(id)}'))">💾 Update</button><button class="btn btn-soft" onclick="document.getElementById('editGuruModal').remove()">Batal</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => updateGuru('${escapeJs(id)}'))">💾 Update</button><button class="btn btn-soft" onclick="document.getElementById('editGuruModal').remove()">Batal</button></div>
         </div>
       `;
       document.body.appendChild(modal);

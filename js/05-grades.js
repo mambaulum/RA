@@ -251,7 +251,7 @@
                     <td>Semester ${escapeHtml(semester)}</td>
                     <td>${capaianBadge(data.nilai)}</td>
                     <td style="font-size:12px;color:#6b7280;">${escapeHtml(data.updated_by || '-')}</td>
-                    <td><button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteGrade('${escapeHtml(studentId)}','${escapeHtml(subjectId)}','${escapeHtml(semester)}')">🗑️</button></td>
+                    <td><button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteGrade('${escapeJs(studentId)}','${escapeJs(subjectId)}','${escapeJs(semester)}')">🗑️</button></td>
                   </tr>
                 `;
               }

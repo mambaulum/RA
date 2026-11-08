@@ -172,6 +172,16 @@
       return div.innerHTML;
     }
 
+    // Untuk nilai yang disisipkan di dalam tanda kutip JavaScript pada atribut
+    // onclick="fn('${...}')". escapeHtml() TIDAK cukup di konteks ini: browser
+    // men-decode &#39; menjadi ' SEBELUM JavaScript dijalankan. escapeJs() menulis
+    // setiap karakter selain huruf/angka/_-:.@ sebagai \uXXXX, sehingga aman di
+    // string JS sekaligus di atribut HTML.
+    function escapeJs(nilai) {
+      if (nilai === null || nilai === undefined) return '';
+      return String(nilai).replace(/[^A-Za-z0-9_\-:.@]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+    }
+
     function sanitizeInput(text) {
       if (!text) return '';
       return String(text).replace(/[<>'"]/g, '').trim();

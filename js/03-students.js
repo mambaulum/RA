@@ -151,10 +151,10 @@
             <td>${escapeHtml(s.jenis_kelamin || '-')}</td>
             <td>${escapeHtml(s.orang_tua || '-')}</td>
             <td>
-              <button class="btn btn-edit" style="padding:2px 10px;font-size:11px;" onclick="editStudent('${escapeHtml(s.id)}')">✏️</button>
-              <button class="btn btn-success" style="padding:2px 8px;font-size:11px;" onclick="kirimLinkPortalWA('${escapeHtml(s.id)}')" title="Kirim link Portal Orang Tua via WhatsApp">🔗📲</button>
-              <button class="btn" style="padding:2px 8px;font-size:11px;background:#fef3c7;color:#92400e;" onclick="resetLinkPortal('${escapeHtml(s.id)}')" title="Reset akses Portal Orang Tua (link lama & PIN lama langsung tidak berlaku)">🔄🔒</button>
-              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteStudent('${escapeHtml(s.id)}')">🗑️</button>
+              <button class="btn btn-edit" style="padding:2px 10px;font-size:11px;" onclick="editStudent('${escapeJs(s.id)}')">✏️</button>
+              <button class="btn btn-success" style="padding:2px 8px;font-size:11px;" onclick="kirimLinkPortalWA('${escapeJs(s.id)}')" title="Kirim link Portal Orang Tua via WhatsApp">🔗📲</button>
+              <button class="btn" style="padding:2px 8px;font-size:11px;background:#fef3c7;color:#92400e;" onclick="resetLinkPortal('${escapeJs(s.id)}')" title="Reset akses Portal Orang Tua (link lama & PIN lama langsung tidak berlaku)">🔄🔒</button>
+              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;" onclick="deleteStudent('${escapeJs(s.id)}')">🗑️</button>
             </td>
           </tr>
         `;
@@ -388,11 +388,11 @@
             <label class="label">Foto Anak (untuk Portal Orang Tua)</label>
             <div style="display:flex;align-items:center;gap:10px;">
               <div id="editSiswaFotoPreview" style="width:52px;height:52px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:11px;color:#9ca3af;flex-shrink:0;">Memuat...</div>
-              <input type="file" accept="image/*" class="field" id="editSiswaFotoInput" style="flex:1;padding:6px;" onchange="prosesFotoSiswa('${escapeHtml(id)}', this)">
+              <input type="file" accept="image/*" class="field" id="editSiswaFotoInput" style="flex:1;padding:6px;" onchange="prosesFotoSiswa('${escapeJs(id)}', this)">
             </div>
             <p style="font-size:11px;color:#9ca3af;margin-top:4px;">Foto otomatis dikompres kecil sebelum disimpan (hemat kuota Firebase).</p>
           </div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => updateSiswa('${escapeHtml(id)}'))">💾 Update</button><button class="btn btn-soft" onclick="document.getElementById('editSiswaModal').remove()">Batal</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => updateSiswa('${escapeJs(id)}'))">💾 Update</button><button class="btn btn-soft" onclick="document.getElementById('editSiswaModal').remove()">Batal</button></div>
         </div>
       `;
       document.body.appendChild(modal);
@@ -555,7 +555,7 @@
           <td style="font-size:12px;">${escapeHtml(s.nama_ayah || '-')} / ${escapeHtml(s.nama_ibu || '-')}</td>
           <td>${s.tanggal_masuk ? escapeHtml(formatDate(s.tanggal_masuk)) : '-'}</td>
           <td><span style="color:${statusColor};font-weight:600;">${statusLabel}</span></td>
-          <td><button class="btn btn-edit" style="padding:2px 10px;font-size:11px;" onclick="editBiodataSiswa('${escapeHtml(s.id)}', ${s.isAlumni})">✏️ Biodata</button></td>
+          <td><button class="btn btn-edit" style="padding:2px 10px;font-size:11px;" onclick="editBiodataSiswa('${escapeJs(s.id)}', ${s.isAlumni})">✏️ Biodata</button></td>
         </tr>`;
       }).join('');
     }
@@ -573,7 +573,7 @@
 
           <div style="display:flex;align-items:end;gap:8px;margin-bottom:12px;">
             <div style="flex:1;"><label class="label">Nomor Induk (permanen)</label><input type="text" class="field" id="biodataNomorInduk" readonly style="background:#f3f4f6;"></div>
-            <button class="btn btn-soft" id="btnGenerateNomorInduk" onclick="generateNomorIndukSiswa('${escapeHtml(id)}', ${isAlumni})">🔢 Generate</button>
+            <button class="btn btn-soft" id="btnGenerateNomorInduk" onclick="generateNomorIndukSiswa('${escapeJs(id)}', ${isAlumni})">🔢 Generate</button>
           </div>
           <div class="grid-2" style="margin-bottom:12px;">
             <div><label class="label">NISN (opsional)</label><input type="text" class="field" id="biodataNISN" maxlength="20"></div>
@@ -597,7 +597,7 @@
             <div><label class="label">Asal Sekolah/TK (kalau pindahan)</label><input type="text" class="field" id="biodataAsalSekolah" maxlength="100"></div>
             <div><label class="label">Tanggal Masuk</label><input type="date" class="field" id="biodataTanggalMasuk"></div>
           </div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => saveBiodataSiswa('${escapeHtml(id)}', ${isAlumni}))">💾 Simpan Biodata</button><button class="btn btn-soft" onclick="document.getElementById('biodataSiswaModal').remove()">Batal</button></div>
+          <div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="guardedCall(this, () => saveBiodataSiswa('${escapeJs(id)}', ${isAlumni}))">💾 Simpan Biodata</button><button class="btn btn-soft" onclick="document.getElementById('biodataSiswaModal').remove()">Batal</button></div>
         </div>
       `;
       document.body.appendChild(modal);

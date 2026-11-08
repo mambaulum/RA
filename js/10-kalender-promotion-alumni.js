@@ -61,7 +61,7 @@
             <div style="font-weight:600;font-size:14px;">${escapeHtml(k.judul || '-')}</div>
             ${k.keterangan ? `<div style="font-size:12px;color:#6b7280;">${escapeHtml(k.keterangan)}</div>` : ''}
           </div>
-          ${isEditor ? `<button class="btn btn-danger" style="padding:2px 8px;font-size:11px;" onclick="deleteKalenderAkademik('${escapeHtml(k.id)}')">🗑️</button>` : ''}
+          ${isEditor ? `<button class="btn btn-danger" style="padding:2px 8px;font-size:11px;" onclick="deleteKalenderAkademik('${escapeJs(k.id)}')">🗑️</button>` : ''}
         </div>`;
       }).join('');
     }
@@ -278,7 +278,7 @@
           <td>${escapeHtml(a.nama || '-')}</td>
           <td>${escapeHtml(a.kelas_terakhir || '-')}</td>
           <td>${escapeHtml(a.tahun_lulus || '-')}</td>
-          <td><button class="btn btn-soft" style="padding:2px 10px;font-size:11px;" onclick="kembalikanAlumni('${escapeHtml(a.id)}')" title="Kembalikan jadi siswa aktif (kalau salah luluskan)">↺ Kembalikan</button></td>
+          <td><button class="btn btn-soft" style="padding:2px 10px;font-size:11px;" onclick="kembalikanAlumni('${escapeJs(a.id)}')" title="Kembalikan jadi siswa aktif (kalau salah luluskan)">↺ Kembalikan</button></td>
         </tr>
       `).join('');
     }

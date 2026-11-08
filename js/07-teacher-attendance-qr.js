@@ -150,7 +150,7 @@
                 </div>
                 ${window.__linkedTeacherIds?.has(teacher.id)
                   ? `<span style="font-size:10px;color:#059669;">🔗 Punya akun login</span>`
-                  : (currentRole === 'admin' ? `<button class="btn btn-soft" style="padding:1px 8px;font-size:10px;min-height:22px;margin-top:2px;" onclick="guardedCall(this, () => buatAkunLoginGuru('${escapeHtml(teacher.id)}'))">🔗 Buat Akun Login</button>` : `<span style="font-size:10px;color:#9ca3af;">Belum ada akun login</span>`)}
+                  : (currentRole === 'admin' ? `<button class="btn btn-soft" style="padding:1px 8px;font-size:10px;min-height:22px;margin-top:2px;" onclick="guardedCall(this, () => buatAkunLoginGuru('${escapeJs(teacher.id)}'))">🔗 Buat Akun Login</button>` : `<span style="font-size:10px;color:#9ca3af;">Belum ada akun login</span>`)}
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -161,9 +161,9 @@
                 <span class="metode-badge" style="font-size:9px;padding:2px 6px;border-radius:10px;background:#dbeafe;color:#1e40af;">
                   ${escapeHtml(datang.metode || 'manual')}${datang.by ? ` • ${escapeHtml(datang.by)}` : ''}
                 </span>
-                <button class="btn btn-danger" style="padding:2px 8px;font-size:10px;min-height:28px;" onclick="resetTeacherAttendance('${escapeHtml(teacher.id)}','datang')" title="Reset absen datang">↺</button>
+                <button class="btn btn-danger" style="padding:2px 8px;font-size:10px;min-height:28px;" onclick="resetTeacherAttendance('${escapeJs(teacher.id)}','datang')" title="Reset absen datang">↺</button>
               ` : `
-                <button class="btn btn-success" style="padding:4px 10px;font-size:11px;min-height:30px;" onclick="absenManualGuru('${escapeHtml(teacher.id)}','datang')">✅ Absen Datang</button>
+                <button class="btn btn-success" style="padding:4px 10px;font-size:11px;min-height:30px;" onclick="absenManualGuru('${escapeJs(teacher.id)}','datang')">✅ Absen Datang</button>
               `}
               ${pulang ? `
                 <span style="font-size:11px;background:#dbeafe;color:#1e40af;padding:3px 8px;border-radius:10px;font-weight:600;">
@@ -172,12 +172,12 @@
                 <span class="metode-badge" style="font-size:9px;padding:2px 6px;border-radius:10px;background:#dbeafe;color:#1e40af;">
                   ${escapeHtml(pulang.metode || 'manual')}${pulang.by ? ` • ${escapeHtml(pulang.by)}` : ''}
                 </span>
-                <button class="btn btn-danger" style="padding:2px 8px;font-size:10px;min-height:28px;" onclick="resetTeacherAttendance('${escapeHtml(teacher.id)}','pulang')" title="Reset absen pulang">↺</button>
+                <button class="btn btn-danger" style="padding:2px 8px;font-size:10px;min-height:28px;" onclick="resetTeacherAttendance('${escapeJs(teacher.id)}','pulang')" title="Reset absen pulang">↺</button>
               ` : `
-                <button class="btn btn-warning" style="padding:4px 10px;font-size:11px;min-height:30px;" ${!datang ? 'disabled title="Harus absen datang dulu"' : ''} onclick="absenManualGuru('${escapeHtml(teacher.id)}','pulang')">🌇 Absen Pulang</button>
+                <button class="btn btn-warning" style="padding:4px 10px;font-size:11px;min-height:30px;" ${!datang ? 'disabled title="Harus absen datang dulu"' : ''} onclick="absenManualGuru('${escapeJs(teacher.id)}','pulang')">🌇 Absen Pulang</button>
               `}
-              <button class="btn btn-edit" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="editGuru('${escapeHtml(teacher.id)}')">✏️</button>
-              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="deleteGuru('${escapeHtml(teacher.id)}')">🗑️</button>
+              <button class="btn btn-edit" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="editGuru('${escapeJs(teacher.id)}')">✏️</button>
+              <button class="btn btn-danger" style="padding:2px 10px;font-size:11px;min-height:30px;" onclick="deleteGuru('${escapeJs(teacher.id)}')">🗑️</button>
             </div>
           </div>
         `;
@@ -407,12 +407,53 @@
     // QR bersifat PERMANEN (1 token tetap, tidak terikat tanggal) — supaya
     // admin tidak perlu generate & cetak ulang tiap hari. Tanggal absen selalu
     // ditentukan otomatis dari waktu HP guru saat scan (WIB), bukan dari QR-nya.
+    // Token QR TIDAK lagi disimpan polos di database (database terbaca publik).
+    // Server hanya menyimpan token_hash = SHA-256(token). Token asli hanya ada di
+    // QR yang dicetak, dan salinannya di perangkat Admin (localStorage) supaya QR
+    // yang sama bisa ditampilkan/dicetak ulang dari perangkat itu.
+    const QR_GURU_LOCAL_KEY = 'qr_guru_token_admin';
+
+    function buatTokenQRBaru() {
+      const bytes = new Uint8Array(16); // 128-bit acak kriptografis
+      crypto.getRandomValues(bytes);
+      return 'qr' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Cocokkan token dari QR dengan sesi di server. Mendukung QR LAMA (token polos)
+    // sampai Admin membuka halaman QR sekali (token lama otomatis di-hash).
+    async function tokenQRCocok(session, token) {
+      if (!session || !token) return false;
+      if (session.token_hash) return (await sha256Hex(token)) === session.token_hash;
+      return !!session.token && session.token === token;
+    }
+
+    function tampilkanQRTidakBisaDirender() {
+      const canvas = document.getElementById('qrGuruCanvas');
+      if (canvas) {
+        canvas.innerHTML = '<div style="padding:14px;font-size:13px;color:#6b7280;max-width:260px;margin:0 auto;">QR yang sedang aktif tidak bisa ditampilkan di perangkat ini (demi keamanan, token tidak disimpan di server). QR yang sudah dicetak tetap berlaku. Jika QR hilang, tekan <b>Buat QR Baru</b> lalu cetak ulang.</div>';
+      }
+    }
+
     async function loadOrGenerateGuruQR() {
       try {
         const snap = await db.ref('qr_sessions/guru/permanent').once('value');
         const existing = snap.val();
+        let lokal = null;
+        try { lokal = localStorage.getItem(QR_GURU_LOCAL_KEY); } catch (e) { /* abaikan */ }
+
         if (existing && existing.token) {
+          // QR lama (token polos di server): simpan salinan di perangkat Admin, lalu
+          // ganti dengan hash di server. QR yang sudah dicetak TETAP berlaku.
           renderGuruQRCanvas(existing.token);
+          try {
+            if (currentRole === 'admin') localStorage.setItem(QR_GURU_LOCAL_KEY, existing.token);
+            if (currentRole === 'admin' && localStorage.getItem(QR_GURU_LOCAL_KEY) === existing.token) {
+              await db.ref('qr_sessions/guru/permanent').update({ token_hash: await sha256Hex(existing.token), token: null });
+            }
+          } catch (e) { console.warn('[QR Guru] Migrasi token ke hash ditunda:', e); }
+        } else if (existing && existing.token_hash) {
+          if (lokal && (await sha256Hex(lokal)) === existing.token_hash) renderGuruQRCanvas(lokal);
+          else tampilkanQRTidakBisaDirender();
         } else {
           await generateGuruQRToken(false);
         }
@@ -452,7 +493,8 @@
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Memproses...'; }
 
       try {
-        const token = 'qr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        const token = buatTokenQRBaru();
+        const tokenHash = await sha256Hex(token);
 
         // Coba tulis + verifikasi baca-ulang dari server (bukan dari cache
         // lokal) sampai benar-benar match. Ini menutup celah kalau tulisan
@@ -463,14 +505,14 @@
         while (!tersimpan && percobaan < MAKS_PERCOBAAN) {
           percobaan++;
           await db.ref('qr_sessions/guru/permanent').set({
-            token, created_at: firebase.database.ServerValue.TIMESTAMP, created_by: currentUser?.nama || 'admin'
+            token_hash: tokenHash, created_at: firebase.database.ServerValue.TIMESTAMP, created_by: currentUser?.nama || 'admin'
           });
           // baca ulang langsung dari server untuk verifikasi (bukan asumsi)
-          const verifikasiSnap = await db.ref('qr_sessions/guru/permanent/token').once('value');
-          if (verifikasiSnap.val() === token) {
+          const verifikasiSnap = await db.ref('qr_sessions/guru/permanent/token_hash').once('value');
+          if (verifikasiSnap.val() === tokenHash) {
             tersimpan = true;
           } else if (percobaan < MAKS_PERCOBAAN) {
-            console.warn(`[QR Guru] Verifikasi gagal (percobaan ${percobaan}), token di server:`, verifikasiSnap.val(), '- token seharusnya:', token, '- mencoba lagi...');
+            console.warn(`[QR Guru] Verifikasi gagal (percobaan ${percobaan}), mencoba lagi...`);
             await new Promise(r => setTimeout(r, 500));
           }
         }
@@ -480,6 +522,7 @@
           return;
         }
 
+        try { localStorage.setItem(QR_GURU_LOCAL_KEY, token); } catch (e) { /* abaikan */ }
         renderGuruQRCanvas(token);
         logActivity(isRegenerate ? 'Membuat ulang QR Absen Guru (QR lama tidak berlaku lagi)' : 'Membuat QR Absen Guru permanen');
         showToast(isRegenerate ? '✅ QR baru dibuat & terverifikasi, cetak & tempel yang baru!' : '✅ QR Absen siap — cukup dicetak 1 kali!', 'success');
@@ -665,8 +708,8 @@
 
         if (token) {
           const session = sessionSnap.val();
-          if (!session || session.token !== token) {
-            console.warn('[QR Guru] Token tidak cocok — dari QR:', token, '| di server:', session ? session.token : '(kosong)');
+          if (!(await tokenQRCocok(session, token))) {
+            console.warn('[QR Guru] Token tidak cocok dengan sesi aktif.');
             box.innerHTML = `<div style="text-align:center;padding:10px;">
               <div style="font-size:48px;margin-bottom:10px;">⚠️</div>
               <h3 style="font-weight:700;margin-bottom:8px;">QR Tidak Valid</h3>
@@ -917,7 +960,7 @@
           db.ref('settings/lokasi_sekolah').once('value')
         ]);
         const session = sessionSnap.val();
-        if (!session || session.token !== token) {
+        if (!(await tokenQRCocok(session, token))) {
           box.innerHTML = `<div style="text-align:center;padding:10px;"><div style="font-size:48px;">⚠️</div><h3 style="font-weight:700;">QR Tidak Valid</h3><p style="color:#6b7280;font-size:13px;">QR ini sudah tidak berlaku. Minta admin cetak ulang QR, lalu scan kembali.</p></div>`;
           return;
         }

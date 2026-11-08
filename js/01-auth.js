@@ -84,6 +84,8 @@
         delete currentUser.pin; delete currentUser.pin_hash; delete currentUser.pin_salt; delete currentUser.pin_iter;
         currentRole = userData.role || 'guru';
         localStorage.setItem('user', JSON.stringify(currentUser));
+        catatAktivitasSesi();
+        mulaiPemantauSesi();
         afterLoginSuccess();
         if (currentRole === 'admin') migrasiPinPolosSemuaUser();
         showToast(`✅ Selamat datang, ${userData.nama || 'User'}!`, 'success'); // showToast memakai textContent -> tidak perlu escapeHtml
@@ -192,6 +194,7 @@
     function logout() {
       currentUser = null; currentRole = null;
       localStorage.removeItem('user');
+      localStorage.removeItem('user_aktif');
       const appPage = document.getElementById('appPage');
       if (appPage) appPage.style.display = 'none';
 
@@ -221,13 +224,87 @@
       return false;
     }
 
+    // ============================================================
+    // SESI LOGIN: batas tidak aktif + pengecekan ke server
+    // ============================================================
+    // Sesi disimpan di localStorage ('user') dan dulu tidak pernah kedaluwarsa serta
+    // dipercaya apa adanya (role bisa diedit lewat console). Sekarang:
+    //  - sesi berakhir kalau tidak ada aktivitas melebihi batas per peran, dan
+    //  - tiap kali sesi dipulihkan, data user & role diambil ulang dari server.
+    // CATATAN: ini melindungi tampilan/menu aplikasi. Pembatasan di server tetap
+    // bergantung pada Firebase Rules.
+    const SESI_BATAS_MENIT = { admin: 15, kepsek: 15, wali_kelas: 30, guru: 30 };
+
+    function batasSesiMs(role) { return (SESI_BATAS_MENIT[role] || 15) * 60000; }
+
+    function catatAktivitasSesi() {
+      try { localStorage.setItem('user_aktif', String(Date.now())); } catch (e) { /* abaikan */ }
+    }
+
+    function sesiKadaluarsa(role) {
+      const terakhir = parseInt(localStorage.getItem('user_aktif') || '0', 10);
+      if (!terakhir) return true; // sesi lama tanpa penanda -> minta login ulang sekali
+      return (Date.now() - terakhir) > batasSesiMs(role);
+    }
+
+    let __pemantauSesiAktif = false;
+    function mulaiPemantauSesi() {
+      if (__pemantauSesiAktif) return;
+      __pemantauSesiAktif = true;
+      let terakhirCatat = 0;
+      const tandai = () => {
+        if (!currentUser) return;
+        const now = Date.now();
+        if (now - terakhirCatat > 15000) { terakhirCatat = now; catatAktivitasSesi(); }
+      };
+      ['click', 'keydown', 'touchstart', 'scroll'].forEach(ev => window.addEventListener(ev, tandai, { passive: true, capture: true }));
+      const periksa = () => {
+        if (currentUser && sesiKadaluarsa(currentRole)) {
+          logout();
+          showToast('Sesi berakhir karena tidak ada aktivitas. Silakan masuk lagi.', 'warning');
+        }
+      };
+      setInterval(periksa, 30000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) periksa(); });
+    }
+
+    // Ambil ulang data user dari server: akun yang sudah dihapus langsung dikeluarkan,
+    // dan role/nama selalu mengikuti data server (bukan hasil edit di browser).
+    async function verifikasiSesiKeServer() {
+      try {
+        if (!currentUser || !currentUser.id) return;
+        const idSaatIni = currentUser.id;
+        const snap = await db.ref(`users/${idSaatIni}`).once('value');
+        if (!currentUser || currentUser.id !== idSaatIni) return;
+        if (!snap.exists()) { logout(); showToast('Akun tidak ditemukan. Silakan masuk lagi.', 'warning'); return; }
+        const data = snap.val();
+        const roleLama = currentRole;
+        currentUser = { ...data, id: idSaatIni };
+        delete currentUser.pin; delete currentUser.pin_hash; delete currentUser.pin_salt; delete currentUser.pin_iter;
+        currentRole = data.role || 'guru';
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        if (roleLama !== currentRole) {
+          const appPage = document.getElementById('appPage');
+          if (appPage && appPage.style.display !== 'none') { updateMenuByRole(currentRole); showPage('dashboard'); }
+        }
+      } catch (e) { /* offline: tetap pakai sesi lokal, akan dicek lagi saat online */ }
+    }
+
     function checkAutoLogin(skipShowApp) {
       const saved = localStorage.getItem('user');
       if (saved) {
         try {
           currentUser = JSON.parse(saved);
           currentRole = currentUser.role || 'guru';
+          if (!currentUser.id || sesiKadaluarsa(currentRole)) {
+            currentUser = null; currentRole = null;
+            localStorage.removeItem('user'); localStorage.removeItem('user_aktif');
+            return false;
+          }
+          catatAktivitasSesi();
+          mulaiPemantauSesi();
           if (!skipShowApp) showApp();
+          verifikasiSesiKeServer();
           return true;
         } catch (e) { localStorage.removeItem('user'); }
       }
@@ -252,6 +329,7 @@
     function logoutFromQRCheckin() {
       currentUser = null; currentRole = null;
       localStorage.removeItem('user');
+      localStorage.removeItem('user_aktif');
       const overlay = document.getElementById('qrCheckinOverlay');
       if (overlay) overlay.style.display = 'none';
       initLoginPage();
@@ -362,7 +440,7 @@
           <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Untuk menjaga privasi ananda, masukkan nomor WhatsApp yang terdaftar di sekolah.</p>
           <input type="tel" id="portalWaInput" class="field" placeholder="Contoh: 081234567890" style="text-align:center;font-size:16px;margin-bottom:10px;" inputmode="numeric">
           <div id="portalWaError" style="color:#dc2626;font-size:12px;margin-bottom:10px;display:none;">Nomor tidak cocok dengan data kami. Silakan coba lagi atau hubungi pihak sekolah.</div>
-          <button class="btn btn-primary" style="width:100%;" onclick="verifikasiWAPortal('${studentId}','${token}')">Lanjutkan</button>
+          <button class="btn btn-primary" style="width:100%;" onclick="verifikasiWAPortal('${escapeJs(studentId)}','${escapeJs(token)}')">Lanjutkan</button>
         </div>`;
       const inputEl = document.getElementById('portalWaInput');
       if (inputEl) {
@@ -616,7 +694,8 @@
         await db.ref(`students/${studentId}`).update({
           portal_token: token,
           portal_pin_hash: null,
-          portal_pin_salt: null
+          portal_pin_salt: null,
+          portal_resume: null
         });
         showToast('✅ Akses portal berhasil direset. Kirim link baru kalau perlu (tombol Kirim Link Portal).', 'success');
         if (typeof refreshStudentsView === 'function') refreshStudentsView();
@@ -920,17 +999,16 @@
       try {
         const terakhir = JSON.parse(localStorage.getItem('portal_last_child') || 'null');
         if (!terakhir?.studentId) return;
-        const buktiTersimpan = localStorage.getItem(`portal_pin_verified_${terakhir.studentId}`);
         document.getElementById('welcomeScreen')?.remove();
         tampilkanKerangkaPortal();
-        db.ref(`students/${terakhir.studentId}`).once('value').then(snap => {
+        db.ref(`students/${terakhir.studentId}`).once('value').then(async snap => {
           const student = snap.val();
           const content = document.getElementById('portalOrtuContent');
           if (!student) { content.innerHTML = `<div style="text-align:center;padding:10px;">Data tidak ditemukan. Silakan cari ulang.</div><button class="btn" style="width:100%;margin-top:10px;" onclick="mulaiPortalOrtu()">Cari Nomor WA</button>`; return; }
           // Cek ulang ke server: kalau admin sudah reset PIN Portal sejak
           // terakhir kali HP ini verifikasi (hash di server sudah beda/hilang),
           // jangan langsung tampilkan data — minta verifikasi ulang.
-          if (buktiTersimpan && student.portal_pin_hash && buktiTersimpan === student.portal_pin_hash) {
+          if (student.portal_pin_hash && await buktiPortalValid(terakhir.studentId, student)) {
             tampilkanDataPortal(student, terakhir.studentId);
           } else {
             tampilkanFormPinPortal(terakhir.studentId, student);
@@ -989,7 +1067,7 @@
         content.innerHTML = `
           <div style="padding:10px 0;">
             <h3 style="font-weight:700;text-align:center;margin-bottom:12px;">Pilih Ananda</h3>
-            ${daftar.map(([id, s]) => `<button class="btn" style="width:100%;margin-bottom:8px;text-align:left;" onclick="tampilkanFormPinPortalById('${id}')">${escapeHtml(s.nama || '-')} <span style="color:#9ca3af;font-size:12px;">(Kelas ${escapeHtml(s.kelas || '-')})</span></button>`).join('')}
+            ${daftar.map(([id, s]) => `<button class="btn" style="width:100%;margin-bottom:8px;text-align:left;" onclick="tampilkanFormPinPortalById('${escapeJs(id)}')">${escapeHtml(s.nama || '-')} <span style="color:#9ca3af;font-size:12px;">(Kelas ${escapeHtml(s.kelas || '-')})</span></button>`).join('')}
             <button class="btn" style="width:100%;background:#f3f4f6;" onclick="mulaiPortalOrtu()">← Kembali</button>
           </div>`;
       } catch (error) {
@@ -1015,7 +1093,7 @@
             <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Masukkan PIN Portal Anda.</p>
             <input type="password" id="pinPortalInput" maxlength="6" style="width:100%;padding:14px;border:2px solid #e5e7eb;border-radius:12px;font-size:18px;text-align:center;letter-spacing:8px;" placeholder="••••••" inputmode="numeric">
             <div id="pinPortalError" style="color:#dc2626;font-size:12px;margin:8px 0;display:none;">PIN salah. Coba lagi atau hubungi sekolah untuk reset.</div>
-            <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="verifikasiPinPortal('${studentId}')">Masuk</button>
+            <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="verifikasiPinPortal('${escapeJs(studentId)}')">Masuk</button>
             <button class="btn" style="width:100%;background:#f3f4f6;margin-top:8px;" onclick="mulaiPortalOrtu()">← Kembali</button>
           </div>`;
       } else {
@@ -1027,12 +1105,58 @@
             <input type="password" id="pinBaruInput" maxlength="6" style="width:100%;padding:14px;border:2px solid #e5e7eb;border-radius:12px;font-size:18px;text-align:center;letter-spacing:8px;margin-bottom:10px;" placeholder="PIN baru" inputmode="numeric">
             <input type="password" id="pinKonfirmasiInput" maxlength="6" style="width:100%;padding:14px;border:2px solid #e5e7eb;border-radius:12px;font-size:18px;text-align:center;letter-spacing:8px;" placeholder="Ulangi PIN" inputmode="numeric">
             <div id="pinBaruError" style="color:#dc2626;font-size:12px;margin:8px 0;display:none;"></div>
-            <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="buatPinPortalBaru('${studentId}')">Buat &amp; Masuk</button>
+            <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="buatPinPortalBaru('${escapeJs(studentId)}')">Buat &amp; Masuk</button>
             <button class="btn" style="width:100%;background:#f3f4f6;margin-top:8px;" onclick="mulaiPortalOrtu()">← Kembali</button>
           </div>`;
       }
       const firstInput = document.getElementById(sudahAdaPin ? 'pinPortalInput' : 'pinBaruInput');
       if (firstInput) firstInput.focus();
+    }
+
+    // ============================================================
+    // BUKTI "SUDAH VERIFIKASI PIN" PORTAL ORANG TUA (per perangkat)
+    // ============================================================
+    // Dulu bukti ini = salinan portal_pin_hash. Karena node students terbaca
+    // publik, siapa pun bisa menyalin hash itu ke localStorage-nya sendiri dan
+    // masuk TANPA PIN. Sekarang: perangkat menyimpan token ACAK (tidak bisa
+    // diturunkan dari data di server), sedangkan server hanya menyimpan
+    // SHA-256 dari token itu di students/{id}/portal_resume/{hash} = waktu.
+    // Pembaca database hanya melihat hash-nya, bukan token yang dibutuhkan.
+    const PORTAL_BUKTI_MAKS_HARI = 90;
+    const PORTAL_BUKTI_MAKS_PERANGKAT = 5;
+
+    async function sha256Hex(teks) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(teks)));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function simpanBuktiPortal(studentId) {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      const bukti = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      const kunci = (await sha256Hex(bukti)).slice(0, 32);
+      const ref = db.ref(`students/${studentId}/portal_resume`);
+      await ref.child(kunci).set(firebase.database.ServerValue.TIMESTAMP);
+      localStorage.setItem(`portal_pin_verified_${studentId}`, bukti);
+      // Rapikan: simpan hanya perangkat terbaru (best effort, gagal tidak masalah).
+      try {
+        const snap = await ref.once('value');
+        const semua = Object.entries(snap.val() || {}).sort((a, b) => (b[1] || 0) - (a[1] || 0));
+        const buang = semua.slice(PORTAL_BUKTI_MAKS_PERANGKAT);
+        if (buang.length) {
+          const upd = {}; buang.forEach(([k]) => { upd[k] = null; });
+          await ref.update(upd);
+        }
+      } catch (e) { /* abaikan */ }
+    }
+
+    async function buktiPortalValid(studentId, student) {
+      try {
+        const bukti = localStorage.getItem(`portal_pin_verified_${studentId}`);
+        if (!bukti || !student || !student.portal_resume) return false;
+        const ts = student.portal_resume[(await sha256Hex(bukti)).slice(0, 32)];
+        return typeof ts === 'number' && (Date.now() - ts) < PORTAL_BUKTI_MAKS_HARI * 86400000;
+      } catch (e) { return false; }
     }
 
     async function verifikasiPinPortal(studentId) {
@@ -1046,7 +1170,7 @@
         if (!student || !student.portal_pin_hash) { if (errBox) { errBox.textContent = 'Data tidak ditemukan.'; errBox.style.display = 'block'; } return; }
         const hashInput = await hashPin(pin, student.portal_pin_salt);
         if (hashInput === student.portal_pin_hash) {
-          localStorage.setItem(`portal_pin_verified_${studentId}`, student.portal_pin_hash);
+          await simpanBuktiPortal(studentId);
           localStorage.setItem('portal_last_child', JSON.stringify({ studentId, nama: student.nama || '' }));
           await tampilkanDataPortal(student, studentId);
         } else if (errBox) {
@@ -1083,7 +1207,7 @@
           return;
         }
         const student = result.snapshot.val();
-        localStorage.setItem(`portal_pin_verified_${studentId}`, student.portal_pin_hash);
+        await simpanBuktiPortal(studentId);
         localStorage.setItem('portal_last_child', JSON.stringify({ studentId, nama: student.nama || '' }));
         await tampilkanDataPortal(student, studentId);
       } catch (error) {
