@@ -683,8 +683,7 @@ body.dark-mode .pagination select { background: #1e293b; border-color: #334155; 
   .modal-box .btn { flex: 1 1 auto; }
 
   /* Kolom filter/pencarian: selebar layar (batas max-width inline hanya untuk desktop) */
-  #page-students .field, #page-anekdot .field, #page-journal .field,
-  #page-teacher-attendance .field, #page-riwayat-absen-saya .field { max-width: none !important; width: 100% !important; }
+  .page-content .field:not(td .field):not(th .field) { max-width: none !important; width: 100% !important; }
   .pagination { gap: 8px; flex-wrap: wrap; }
 }
 
@@ -1000,3 +999,30 @@ body.dark-mode .kb-chip { background: #0f172a; border-color: #475569; color: #e2
 body.dark-mode .kb-chip.on { background: #064e3b; color: #a7f3d0; border-color: #10b981; }
 body.dark-mode .kb-tabel th, body.dark-mode .kb-tabel td { border-color: #334155; }
 body.dark-mode .kb-tabel th:first-child, body.dark-mode .kb-tabel td:first-child { background: #1e293b; }
+
+
+/* ==========================================================
+   18. PANEL ADMIN: log aktivitas & tombol setup (v21)
+   ========================================================== */
+.log-item { display: grid; grid-template-columns: 24px 1fr; column-gap: 8px; row-gap: 2px; align-items: start; padding: 8px 4px; }
+.log-item .log-icon { grid-row: 1 / span 2; line-height: 1.3; text-align: center; }
+.log-item .log-action { grid-column: 2; line-height: 1.4; word-break: break-word; }
+.log-item .log-meta { grid-column: 2; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.log-item .log-user { font-size: 11px; }
+.log-item .log-time { white-space: nowrap; }
+.admin-select { max-width: 360px; text-overflow: ellipsis; }
+.admin-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .admin-select { max-width: none; width: 100%; }
+  .admin-actions { flex-direction: column; }
+  .admin-actions .btn, .admin-wide { width: 100%; justify-content: center; text-align: center; }
+  .admin-actions.admin-actions-row { flex-direction: row; }
+  .admin-actions.admin-actions-row .btn { flex: 1; width: auto; }
+  #page-admin .card { padding-bottom: 76px; } /* ruang agar tombol bulat "ke atas" tidak menutupi tombol */
+}
+
+/* v21b: kartu angka Profil 4 kolom -> 2 kolom di HP; tombol lokasi boleh turun baris */
+@media (max-width: 768px) {
+  #page-profil [style*="repeat(4,1fr)"] { grid-template-columns: 1fr 1fr !important; }
+  #page-profil .btn[style*="nowrap"] { white-space: normal !important; }
+}
