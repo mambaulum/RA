@@ -39,7 +39,7 @@
       try {
         await __regSW.update();
         if (__regSW.waiting && navigator.serviceWorker.controller) { tampilkanToastUpdate(__regSW.waiting); return; }
-        if (__regSW.installing) { info('Versi baru sedang diunduh, tombol Refresh akan muncul sebentar lagi.', 'info'); return; }
+        if (__regSW.installing) { info('Versi baru sedang diunduh, pop-up pembaruan akan muncul sebentar lagi.', 'info'); return; }
         info('✅ Aplikasi sudah versi terbaru', 'success');
       } catch (e) {
         info('Gagal memeriksa pembaruan. Periksa koneksi internet.', 'error');
@@ -59,7 +59,10 @@
             // tiap 30 menit dan setiap kali aplikasi dibuka kembali dari latar belakang.
             setInterval(() => { reg.update().catch(() => {}); }, 30 * 60 * 1000);
             document.addEventListener('visibilitychange', () => {
-              if (!document.hidden) reg.update().catch(() => {});
+              if (document.hidden) return;
+              reg.update().catch(() => {}).then(() => {
+                if (reg.waiting && navigator.serviceWorker.controller && Date.now() - __updateDitundaPada > 10 * 60 * 1000) tampilkanToastUpdate(reg.waiting);
+              });
             });
             // Cek versi baru yang sedang di-install di background
             reg.addEventListener('updatefound', () => {
@@ -75,7 +78,7 @@
           })
           .catch(err => console.warn('SW registration gagal:', err));
 
-        // Setelah SW baru mengambil alih (setelah user klik Refresh),
+        // Setelah SW baru mengambil alih (setelah user klik Update),
         // reload halaman sekali supaya file terbaru benar-benar terpakai.
         let sudahRefresh = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -86,36 +89,42 @@
       });
     }
 
+    // Pop-up pembaruan: muncul di tengah layar saat versi baru sudah siap dipasang.
+    var __updateDitundaPada = 0;
     function tampilkanToastUpdate(workerBaru) {
       if (document.getElementById('updateToastSW')) return; // jangan dobel
-      // Di HP, menu bawah (Beranda/Absensi/QR/Jurnal/Lainnya) tidak boleh tertutup:
-      // toast diletakkan DI ATAS menu itu bila sedang tampil.
-      var nav = document.getElementById('bottomNav');
-      var navTampil = nav && nav.offsetHeight > 0 && getComputedStyle(nav).display !== 'none';
-      var bawah = (navTampil ? nav.offsetHeight + 14 : 20);
-      const toast = document.createElement('div');
-      toast.id = 'updateToastSW';
-      toast.setAttribute('role', 'alert');
-      toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);' +
-        'bottom:calc(' + bawah + 'px + env(safe-area-inset-bottom,0px));' +
-        'background:#0f3b2c;color:#fff;padding:8px 8px 8px 14px;border-radius:999px;' +
-        'box-shadow:0 8px 24px rgba(0,0,0,0.28);z-index:999999;display:flex;flex-wrap:nowrap;' +
-        'align-items:center;gap:10px;font-family:Inter,sans-serif;font-size:13px;' +
-        'width:max-content;max-width:calc(100vw - 24px);box-sizing:border-box;';
-      toast.innerHTML =
-        '<span style="white-space:nowrap;font-weight:600;">🔄 Versi baru tersedia</span>' +
-        '<button id="btnRefreshSW" type="button" style="background:#a7f3d0;color:#0f3b2c;border:none;' +
-        'min-height:36px;padding:0 16px;border-radius:999px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;">Refresh</button>' +
-        '<button id="btnTutupToastSW" type="button" aria-label="Tutup" style="background:transparent;color:rgba(255,255,255,0.7);' +
-        'border:none;font-size:16px;cursor:pointer;width:36px;height:36px;border-radius:50%;line-height:1;">✕</button>';
-      document.body.appendChild(toast);
+      const overlay = document.createElement('div');
+      overlay.id = 'updateToastSW';
+      overlay.setAttribute('role', 'alertdialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-labelledby', 'updateJudulSW');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,0.55);' +
+        'display:flex;align-items:center;justify-content:center;padding:20px;font-family:Inter,sans-serif;';
+      overlay.innerHTML =
+        '<div style="background:#fff;color:#1f2937;border-radius:20px;max-width:360px;width:100%;padding:24px 22px 20px;' +
+        'box-shadow:0 20px 60px rgba(0,0,0,0.35);text-align:center;box-sizing:border-box;">' +
+          '<div style="width:56px;height:56px;border-radius:50%;background:#d1fae5;margin:0 auto 12px;display:flex;' +
+          'align-items:center;justify-content:center;font-size:28px;">🔄</div>' +
+          '<h3 id="updateJudulSW" style="font-size:18px;font-weight:800;color:#0f3b2c;margin:0 0 8px;">Pembaruan tersedia</h3>' +
+          '<p style="font-size:14px;line-height:1.5;color:#4b5563;margin:0 0 18px;">Versi baru SI MAMBA sudah siap. ' +
+          'Aplikasi akan dimuat ulang sebentar, jadi simpan dulu isian yang belum tersimpan.</p>' +
+          '<button id="btnRefreshSW" type="button" style="display:block;width:100%;min-height:48px;background:#0f3b2c;color:#fff;border:none;' +
+          'border-radius:14px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;">Update sekarang</button>' +
+          '<button id="btnTutupToastSW" type="button" style="display:block;width:100%;min-height:44px;margin-top:8px;background:transparent;' +
+          'color:#6b7280;border:none;font-size:14px;cursor:pointer;font-family:inherit;">Nanti</button>' +
+        '</div>';
+      document.body.appendChild(overlay);
 
       document.getElementById('btnRefreshSW').addEventListener('click', () => {
+        const tombol = document.getElementById('btnRefreshSW');
+        tombol.disabled = true; tombol.textContent = 'Memperbarui...';
         workerBaru.postMessage('SKIP_WAITING');
-        toast.remove();
+        // Halaman dimuat ulang otomatis lewat 'controllerchange'; cadangan bila tidak terpicu.
+        setTimeout(() => { window.location.reload(); }, 4000);
       });
       document.getElementById('btnTutupToastSW').addEventListener('click', () => {
-        toast.remove(); // pengguna bisa tunda; toast muncul lagi di load berikutnya kalau belum update
+        __updateDitundaPada = Date.now();
+        overlay.remove(); // muncul lagi saat aplikasi dibuka kembali / setelah beberapa menit
       });
     }
   </script>
@@ -224,7 +233,7 @@
        supaya layar awal (splash) bisa tampil sebelum ~1,5 MB script selesai diunduh. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles/main.css?v=22" />
+  <link rel="stylesheet" href="styles/main.css?v=24" />
 </head>
 <body>
 
@@ -990,11 +999,11 @@
           </div>
           <button class="btn btn-primary" onclick="guardedCall(this, saveJournal)">💾 Simpan Jurnal</button>
           <hr style="margin:20px 0;border-color:#e5e7eb;">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <div class="jr-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
             <h4 style="font-weight:600;">📋 Riwayat Jurnal</h4>
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div class="jr-filter" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               <input type="text" class="field" id="journalSearch" placeholder="🔍 Cari mapel/materi..." style="max-width:180px;" oninput="filterJournalByGuru()">
-              <label class="label" style="margin:0;">Filter Guru:</label>
+              <label class="label jr-filter-label" style="margin:0;">Filter Guru:</label>
               <select class="field" id="journalFilterGuru" style="max-width:200px;" onchange="filterJournalByGuru()"><option value="">Semua Guru</option></select>
             </div>
           </div>
