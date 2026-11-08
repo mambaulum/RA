@@ -224,7 +224,7 @@
        supaya layar awal (splash) bisa tampil sebelum ~1,5 MB script selesai diunduh. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles/main.css?v=13" />
+  <link rel="stylesheet" href="styles/main.css?v=15" />
 </head>
 <body>
 
@@ -378,7 +378,8 @@
           <span id="offlineQueueBadge" class="status-badge" style="display:none;background:#fef3c7;color:#92400e;cursor:pointer;" onclick="flushOfflineQueue()" title="Klik untuk coba kirim ulang sekarang">⏳ 0 belum tersinkron</span>
           <button id="installBtn" onclick="installApp()"><i data-lucide="smartphone" style="width:14px;height:14px;"></i> Install</button>
           <button class="dark-toggle" onclick="toggleDarkMode()" aria-label="Ganti mode gelap/terang"><i data-lucide="moon"></i></button>
-          <div style="display:flex;gap:4px;">
+          <button type="button" class="topbar-more" id="topbarMoreBtn" aria-label="Menu aksi lainnya" aria-expanded="false"><i data-lucide="ellipsis-vertical"></i></button>
+          <div class="topbar-actions" style="display:flex;gap:4px;">
             <button class="btn btn-soft" style="padding:6px 10px;font-size:14px;" onclick="refreshAllData()" title="Refresh Data" aria-label="Refresh Data"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i></button>
             <button class="btn btn-soft" style="padding:6px 10px;font-size:13px;" onclick="periksaPembaruanApp()" title="Periksa pembaruan aplikasi" aria-label="Periksa pembaruan aplikasi">⬆️ Update</button>
             <button class="btn btn-soft" style="padding:6px 10px;font-size:14px;" onclick="showDebug()" id="btnDebugTopbar" title="Debug (khusus admin)" aria-label="Debug"><i data-lucide="bug" style="width:14px;height:14px;"></i></button>
@@ -1107,6 +1108,8 @@
         <div class="card">
           <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">💰 Honor Guru</h3>
           <p style="color:#6b7280;font-size:13px;margin-bottom:16px;">Dihitung otomatis dari jumlah hari <strong>Absen Datang</strong> tercatat tiap guru pada periode terpilih. Potongan Telat/Pulang Awal (kalau diatur) otomatis mengurangi honor kotor.</p>
+          <details class="honor-settings">
+            <summary>⚙️ Pengaturan Honor <span>(default harian, potongan, bonus)</span></summary>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:12px;padding:12px;background:#f8fafc;border-radius:10px;">
             <div><label class="label">Honor per Hari Default (Rp)</label><input type="number" class="field" id="honorDefaultHarian" placeholder="50000" style="max-width:160px;"></div>
             <button class="btn btn-soft" onclick="guardedCall(this, saveHonorDefault)">💾 Simpan Default</button>
@@ -1123,12 +1126,15 @@
             <button class="btn btn-soft" onclick="guardedCall(this, saveHonorBonusTerajin)">💾 Simpan Bonus</button>
             <p style="font-size:11px;color:#9ca3af;margin:0;">Diberikan ke 1 guru dengan % Kehadiran tertinggi bulan itu. Kosongkan/0 kalau tidak ada bonus.</p>
           </div>
+          </details>
           <div class="grid-3" style="margin-bottom:16px;">
             <div><label class="label">Periode</label><input type="month" class="field" id="honorPeriode"></div>
             <div><label class="label">Guru</label><select class="field" id="honorGuru"><option value="">Semua Guru</option></select></div>
             <div style="display:flex;align-items:flex-end;gap:8px;">
               <button class="btn btn-primary" onclick="hitungHonor()">🧮 Hitung Honor</button>
               <button class="btn btn-soft" onclick="exportSlipHonorPDF()">📄 Export Slip Honor</button>
+              <button class="btn btn-success" onclick="exportRekapHonorPDF()">🖨️ Rekap (TTD Manual)</button>
+              <button class="btn btn-soft" onclick="exportRekapHonorPDF('share')">📲 Kirim Rekap WhatsApp</button>
             </div>
           </div>
           <div id="honorResult"><div style="text-align:center;padding:20px;color:#6b7280;">Pilih periode dan klik Hitung Honor</div></div>
@@ -1502,6 +1508,24 @@
       </button>
     </div>
   </nav>
+  <script>
+    // v15: tombol ⋮ di header HP membuka/menutup baris "tahun ajaran + Refresh/Update/Debug/Backup"
+    (function() {
+      const topbar = document.querySelector('.topbar');
+      const btn = document.getElementById('topbarMoreBtn');
+      if (!topbar || !btn) return;
+      function set(open) {
+        topbar.classList.toggle('more-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      btn.addEventListener('click', e => { e.stopPropagation(); set(!topbar.classList.contains('more-open')); });
+      // tutup setelah memilih aksi, atau saat menyentuh area lain
+      topbar.addEventListener('click', e => { if (e.target.closest('.topbar-actions .btn')) set(false); });
+      document.addEventListener('click', e => { if (!e.target.closest('.topbar')) set(false); });
+      // keterangan "Guru absen dengan scan QR..." di Absen Guru: ketuk untuk buka/tutup (HP)
+      document.addEventListener('click', e => { const f = e.target.closest('#faceStatus'); if (f) f.classList.toggle('expanded'); });
+    })();
+  </script>
   <script>
     (function() {
       const bottomNav = document.getElementById('bottomNav');
