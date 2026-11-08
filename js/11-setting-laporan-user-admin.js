@@ -459,8 +459,8 @@
       if (!validatePIN(pin)) { showToast('PIN harus 4-6 digit angka!', 'error'); return; }
       if (!validateNama(nama)) { showToast('Nama harus 2-100 karakter!', 'error'); return; }
       try {
-        const { pin_salt, pin_hash } = await buatPinHashBaru(pin);
-        const payload = { nama: sanitizeInput(nama), pin_salt, pin_hash, role: sanitizeInput(role), guruKey: currentUser?.id || null, created_at: firebase.database.ServerValue.TIMESTAMP };
+        const { pin_salt, pin_hash, pin_iter } = await buatPinHashUser(pin);
+        const payload = { nama: sanitizeInput(nama), pin_salt, pin_hash, pin_iter, role: sanitizeInput(role), guruKey: currentUser?.id || null, created_at: firebase.database.ServerValue.TIMESTAMP };
         if (bolehDikaitkanKeGuru(role) && teacherId) payload.teacher_id = teacherId;
         if (petugasInfaq) payload.petugas_infaq = true;
         await db.ref('users').push(payload);

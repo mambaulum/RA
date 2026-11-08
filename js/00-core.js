@@ -250,7 +250,8 @@
     // itu sebabnya akses ke node /users tetap harus dijaga ketat lewat
     // Security Rules (auth != null), bukan cuma mengandalkan hashing ini.
     // ============================================================
-    const PIN_HASH_ITERATIONS = 150000;
+    const PIN_HASH_ITERATIONS = 150000;      // hash LAMA & PIN Portal Ortu (tidak berubah)
+    const PIN_HASH_ITERATIONS_USER = 600000; // akun login guru/admin: hash BARU (field pin_iter)
 
     function generatePinSalt() {
       const bytes = new Uint8Array(16);
@@ -264,11 +265,11 @@
       return bytes;
     }
 
-    async function hashPin(pin, saltHex) {
+    async function hashPin(pin, saltHex, iter) {
       const enc = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
       const derived = await crypto.subtle.deriveBits(
-        { name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: PIN_HASH_ITERATIONS, hash: 'SHA-256' },
+        { name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: iter || PIN_HASH_ITERATIONS, hash: 'SHA-256' },
         keyMaterial, 256
       );
       return Array.from(new Uint8Array(derived)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -282,10 +283,18 @@
       return { pin_salt: salt, pin_hash: hash };
     }
 
+    // Hash baru untuk AKUN LOGIN guru/admin: iterasi lebih tinggi, dicatat di
+    // `pin_iter` supaya hash lama (tanpa pin_iter = 150000) tetap bisa diverifikasi.
+    async function buatPinHashUser(pin) {
+      const salt = generatePinSalt();
+      const hash = await hashPin(pin, salt, PIN_HASH_ITERATIONS_USER);
+      return { pin_salt: salt, pin_hash: hash, pin_iter: PIN_HASH_ITERATIONS_USER };
+    }
+
     // Bandingkan PIN yang diketik user dengan hash+salt tersimpan di data user.
     async function verifyPin(pin, userData) {
       if (userData && userData.pin_hash && userData.pin_salt) {
-        const computed = await hashPin(pin, userData.pin_salt);
+        const computed = await hashPin(pin, userData.pin_salt, userData.pin_iter || PIN_HASH_ITERATIONS);
         return computed === userData.pin_hash;
       }
       // Fallback data LAMA yang belum dimigrasi (masih field `pin` plaintext).
@@ -293,6 +302,27 @@
         return userData.pin === pin;
       }
       return false;
+    }
+
+    // Admin: ubah SEMUA akun yang masih menyimpan `pin` polos jadi hash, lalu hapus
+    // field `pin`. Dipanggil otomatis setelah Admin login (tanpa menunggu tiap
+    // pengguna login). Aman diulang: akun yang sudah ter-hash dilewati.
+    async function migrasiPinPolosSemuaUser() {
+      if (currentRole !== 'admin') return 0;
+      let jumlah = 0;
+      try {
+        const snap = await db.ref('users').once('value');
+        const data = snap.val() || {};
+        for (const [id, u] of Object.entries(data)) {
+          if (u && u.pin && !u.pin_hash) {
+            const h = await buatPinHashUser(String(u.pin));
+            await db.ref(`users/${id}`).update({ ...h, pin: null });
+            jumlah++;
+          }
+        }
+        if (jumlah) console.info(`Migrasi PIN polos -> hash: ${jumlah} akun`);
+      } catch (e) { console.warn('Migrasi PIN polos gagal:', e); }
+      return jumlah;
     }
 
     // ============================================================

@@ -244,9 +244,9 @@
       if (pin === null) return;
       if (!validatePIN(pin)) { showToast('PIN harus 4-6 digit angka!', 'error'); return; }
       try {
-        const { pin_salt, pin_hash } = await buatPinHashBaru(pin);
+        const { pin_salt, pin_hash, pin_iter } = await buatPinHashUser(pin);
         await db.ref('users').push({
-          nama: sanitizeInput(teacher.nama), pin_salt, pin_hash, role: 'guru', teacher_id: teacherId,
+          nama: sanitizeInput(teacher.nama), pin_salt, pin_hash, pin_iter, role: 'guru', teacher_id: teacherId,
           guruKey: currentUser?.id || null,
           created_at: firebase.database.ServerValue.TIMESTAMP
         });

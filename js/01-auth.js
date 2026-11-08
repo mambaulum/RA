@@ -69,22 +69,23 @@
           return false;
         }
 
-        // Data lama (belum di-hash): migrasi diam-diam ke hash begitu login
-        // berhasil, supaya lama-lama seluruh akun otomatis pindah tanpa perlu
-        // aksi manual admin per-user.
-        if (!userData.pin_hash && userData.pin) {
+        // Data lama (plaintext) ATAU hash beriterasi rendah: naikkan ke hash baru
+        // begitu login berhasil (PIN yang diketik sudah terbukti benar).
+        const perluUpgrade = (!userData.pin_hash && userData.pin) || (userData.pin_hash && (userData.pin_iter || PIN_HASH_ITERATIONS) < PIN_HASH_ITERATIONS_USER);
+        if (perluUpgrade) {
           try {
-            const { pin_salt, pin_hash } = await buatPinHashBaru(pin);
-            await db.ref(`users/${userId}`).update({ pin_salt, pin_hash, pin: null });
-            userData.pin_salt = pin_salt; userData.pin_hash = pin_hash; delete userData.pin;
-          } catch (migErr) { console.warn('Migrasi PIN ke hash gagal (login tetap lanjut):', migErr); }
+            const baru = await buatPinHashUser(pin);
+            await db.ref(`users/${userId}`).update({ ...baru, pin: null });
+            Object.assign(userData, baru); delete userData.pin;
+          } catch (migErr) { console.warn('Upgrade hash PIN gagal (login tetap lanjut):', migErr); }
         }
 
         currentUser = { ...userData, id: userId };
-        delete currentUser.pin; delete currentUser.pin_hash; delete currentUser.pin_salt;
+        delete currentUser.pin; delete currentUser.pin_hash; delete currentUser.pin_salt; delete currentUser.pin_iter;
         currentRole = userData.role || 'guru';
         localStorage.setItem('user', JSON.stringify(currentUser));
         afterLoginSuccess();
+        if (currentRole === 'admin') migrasiPinPolosSemuaUser();
         showToast(`✅ Selamat datang, ${userData.nama || 'User'}!`, 'success'); // showToast memakai textContent -> tidak perlu escapeHtml
         showLoading(false);
         return true;
@@ -649,11 +650,12 @@
           showToast('PIN lama salah!', 'error');
           return;
         }
-        const { pin_salt, pin_hash } = await buatPinHashBaru(newPin);
+        const { pin_salt, pin_hash, pin_iter } = await buatPinHashUser(newPin);
         await db.ref(`users/${currentUser.id}`).transaction((currentData) => {
           if (currentData === null) return currentData;
           currentData.pin_salt = pin_salt;
           currentData.pin_hash = pin_hash;
+          currentData.pin_iter = pin_iter;
           currentData.pin = null; // buang sisa data lama kalau masih ada
           return currentData;
         });
