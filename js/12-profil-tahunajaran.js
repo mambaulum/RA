@@ -13,8 +13,9 @@
           return loadProfil();
         }
         if (Object.keys(tahunData).length === 0) {
-          await createDefaultTahunAjaran();
-          return loadProfil();
+          // Hanya Admin yang boleh MENULIS tahun ajaran (termasuk nilai awal). Pengguna lain cukup melihat nilai bawaan.
+          if (currentRole === 'admin') { await createDefaultTahunAjaran(); return loadProfil(); }
+          Object.assign(tahunData, dataTahunAjaranBawaan());
         }
         displayProfil(profilData);
         displayTahunAjaran(tahunData);
@@ -223,8 +224,8 @@
         const snapshot = await db.ref('tahun_ajaran').once('value');
         const data = snapshot.val() || {};
         if (Object.keys(data).length === 0) {
-          await createDefaultTahunAjaran();
-          return loadTahunAjaran();
+          if (currentRole === 'admin') { await createDefaultTahunAjaran(); return loadTahunAjaran(); }
+          Object.assign(data, dataTahunAjaranBawaan());
         }
         displayTahunAjaran(data);
         ['btnEditTahun', 'btnEditTahunAjaran'].forEach(id => {
@@ -235,18 +236,23 @@
       } catch (error) { console.error('Error loading tahun ajaran:', error); }
     }
 
+    function dataTahunAjaranBawaan() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const nextYear = year + 1;
+      const isGenap = now.getMonth() >= 6;
+      return {
+        tahun_ajaran: `${year}/${nextYear}`, semester: isGenap ? 1 : 2,
+        semester_nama: isGenap ? 'Semester 1 (Ganjil)' : 'Semester 2 (Genap)',
+        tanggal_mulai: `${year}-07-01`, tanggal_akhir: `${nextYear}-06-30`,
+        status: 'Aktif'
+      };
+    }
+
     async function createDefaultTahunAjaran() {
+      if (currentRole !== 'admin') return; // hanya Admin yang boleh menulis tahun ajaran
       try {
-        const now = new Date();
-        const year = now.getFullYear();
-        const nextYear = year + 1;
-        const isGenap = now.getMonth() >= 6;
-        await db.ref('tahun_ajaran').set({
-          tahun_ajaran: `${year}/${nextYear}`, semester: isGenap ? 1 : 2,
-          semester_nama: isGenap ? 'Semester 1 (Ganjil)' : 'Semester 2 (Genap)',
-          tanggal_mulai: `${year}-07-01`, tanggal_akhir: `${nextYear}-06-30`,
-          status: 'Aktif', updated_at: firebase.database.ServerValue.TIMESTAMP
-        });
+        await db.ref('tahun_ajaran').set({ ...dataTahunAjaranBawaan(), updated_at: firebase.database.ServerValue.TIMESTAMP });
         console.log('✅ Tahun ajaran default dibuat');
       } catch (error) { console.error('Error creating default tahun ajaran:', error); }
     }
@@ -262,7 +268,13 @@
 
     function updateTopbarTahun(data) {
       const select = document.getElementById('tahunAjaranSelect');
-      if (select) { select.value = data.tahun_ajaran || '2025/2026'; }
+      if (select) {
+        select.value = data.tahun_ajaran || '2025/2026';
+        // Hanya Admin yang boleh mengubah tahun pelajaran; pengguna lain melihatnya saja.
+        const admin = currentRole === 'admin';
+        select.disabled = !admin;
+        select.title = admin ? 'Ganti tahun pelajaran' : 'Hanya Admin yang dapat mengubah tahun pelajaran';
+      }
     }
 
     function editTahunAjaran() {
@@ -293,6 +305,7 @@
     }
 
     async function updateTahunAjaran() {
+      if (currentRole !== 'admin') { showToast('⚠️ Hanya Admin yang dapat mengubah Tahun Ajaran!', 'warning'); return; }
       const tahun = document.getElementById('editTahunAjaran').value.trim();
       const semester = document.getElementById('editSemester').value;
       const tanggalMulai = document.getElementById('editTanggalMulai').value;

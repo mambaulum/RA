@@ -14,7 +14,10 @@
     async function getKurikulumSetting() {
       try {
         const snap = await db.ref('settings/kurikulum').once('value');
-        return snap.val() || 'k13';
+        const v = snap.val();
+        // Disimpan sebagai objek {value, updated_by, ...} (lihat saveKurikulumPaud); data lama bisa berupa teks langsung.
+        const nilai = (v && typeof v === 'object') ? v.value : v;
+        return nilai === 'merdeka' ? 'merdeka' : 'k13';
       } catch (error) {
         console.error('Gagal membaca setting kurikulum:', error);
         return 'k13';
