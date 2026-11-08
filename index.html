@@ -224,7 +224,7 @@
        supaya layar awal (splash) bisa tampil sebelum ~1,5 MB script selesai diunduh. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles/main.css?v=15" />
+  <link rel="stylesheet" href="styles/main.css?v=19" />
 </head>
 <body>
 
@@ -315,32 +315,61 @@
         <div class="sub">RA Mambaul Ulum</div>
       </div>
       <nav class="sidebar-menu">
-        <div class="menu-label">Menu Utama</div>
-        <div class="menu-item active" data-page="dashboard"><span class="icon"><i data-lucide="layout-dashboard"></i></span> Dashboard</div>
-        <div class="menu-item" data-page="profil"><span class="icon"><i data-lucide="landmark"></i></span> Profil RA</div>
-        <div class="menu-item" data-page="students"><span class="icon"><i data-lucide="users"></i></span> Data Siswa</div>
-        <div class="menu-item" data-page="buku-induk"><span class="icon"><i data-lucide="book-open"></i></span> Buku Induk</div>
-        <div class="menu-item" data-page="subjects"><span class="icon"><i data-lucide="layers"></i></span> Aspek Perkembangan</div>
-        <div class="menu-item" data-page="attendance"><span class="icon"><i data-lucide="calendar-check"></i></span> Absensi</div>
-        <div class="menu-item" data-page="infaq"><span class="icon"><i data-lucide="wallet"></i></span> Infaq</div>
-        <div class="menu-item" data-page="grades"><span class="icon"><i data-lucide="clipboard-list"></i></span> Nilai</div>
-        <div class="menu-item" data-page="anekdot"><span class="icon"><i data-lucide="sticky-note"></i></span> Catatan Anekdot</div>
-        <div class="menu-item" data-page="rapor-narasi"><span class="icon"><i data-lucide="scroll-text"></i></span> Rapor Narasi</div>
-        <div class="menu-item" data-page="journal"><span class="icon"><i data-lucide="notebook-pen"></i></span> Jurnal Mengajar</div>
-        <div class="menu-item" data-page="teacher-attendance"><span class="icon"><i data-lucide="camera"></i></span> Absen Guru</div>
-        <div class="menu-item" data-page="riwayat-absen-saya"><span class="icon"><i data-lucide="history"></i></span> Riwayat Absen Saya</div>
-        <div class="menu-item" data-page="rekap"><span class="icon"><i data-lucide="clipboard-list"></i></span> Rekap</div>
-        <div class="menu-item" data-page="rekap-nilai"><span class="icon"><i data-lucide="bar-chart-3"></i></span> Rekap Nilai</div>
-        <div class="menu-item" data-page="honor"><span class="icon"><i data-lucide="banknote"></i></span> Honor</div>
-        <div class="menu-item" data-page="surat"><span class="icon"><i data-lucide="file-text"></i></span> Surat & Ijin</div>
-        <div class="menu-item" data-page="jadwal"><span class="icon"><i data-lucide="calendar-days"></i></span> Jadwal</div>
-        <div class="menu-item" data-page="kalender-akademik"><span class="icon"><i data-lucide="calendar"></i></span> Kalender Akademik</div>
-        <div class="menu-item" data-page="promotion"><span class="icon"><i data-lucide="trending-up"></i></span> Kenaikan Kelas</div>
-        <div class="menu-item" data-page="alumni"><span class="icon"><i data-lucide="graduation-cap"></i></span> Alumni</div>
-        <div class="menu-item" data-page="setting-jam"><span class="icon"><i data-lucide="clock"></i></span> Setting Jam</div>
-        <div class="menu-item" data-page="laporan"><span class="icon"><i data-lucide="file-bar-chart"></i></span> Laporan</div>
-        <div class="menu-item" data-page="user-management"><span class="icon"><i data-lucide="users"></i></span> Manajemen User</div>
-        <div class="menu-item" data-page="admin"><span class="icon"><i data-lucide="settings"></i></span> Admin</div>
+        <div class="menu-group" data-group="utama">
+          <button type="button" class="menu-group-title" aria-expanded="true"><span>Utama</span><i class="mg-chev">▾</i></button>
+          <div class="menu-group-items">
+            <div class="menu-item active" data-page="dashboard"><span class="icon"><i data-lucide="layout-dashboard"></i></span> Dashboard</div>
+          </div>
+        </div>
+        <div class="menu-group" data-group="data">
+          <button type="button" class="menu-group-title" aria-expanded="true"><span>Data Sekolah</span><i class="mg-chev">▾</i></button>
+          <div class="menu-group-items">
+            <div class="menu-item" data-page="profil"><span class="icon"><i data-lucide="landmark"></i></span> Profil RA</div>
+            <div class="menu-item" data-page="students"><span class="icon"><i data-lucide="users"></i></span> Data Siswa</div>
+            <div class="menu-item" data-page="buku-induk"><span class="icon"><i data-lucide="book-open"></i></span> Buku Induk</div>
+            <div class="menu-item" data-page="subjects"><span class="icon"><i data-lucide="layers"></i></span> Aspek Perkembangan</div>
+            <div class="menu-item" data-page="jadwal"><span class="icon"><i data-lucide="calendar-days"></i></span> Jadwal</div>
+            <div class="menu-item" data-page="kalender-akademik"><span class="icon"><i data-lucide="calendar"></i></span> Kalender Akademik</div>
+            <div class="menu-item" data-page="setting-jam"><span class="icon"><i data-lucide="clock"></i></span> Setting Jam</div>
+          </div>
+        </div>
+        <div class="menu-group" data-group="belajar">
+          <button type="button" class="menu-group-title" aria-expanded="true"><span>Kegiatan Belajar</span><i class="mg-chev">▾</i></button>
+          <div class="menu-group-items">
+            <div class="menu-item" data-page="attendance"><span class="icon"><i data-lucide="calendar-check"></i></span> Absensi</div>
+            <div class="menu-item" data-page="grades"><span class="icon"><i data-lucide="clipboard-list"></i></span> Nilai</div>
+            <div class="menu-item" data-page="anekdot"><span class="icon"><i data-lucide="sticky-note"></i></span> Catatan Anekdot</div>
+            <div class="menu-item" data-page="rapor-narasi"><span class="icon"><i data-lucide="scroll-text"></i></span> Rapor Narasi</div>
+            <div class="menu-item" data-page="journal"><span class="icon"><i data-lucide="notebook-pen"></i></span> Jurnal Mengajar</div>
+          </div>
+        </div>
+        <div class="menu-group" data-group="guru">
+          <button type="button" class="menu-group-title" aria-expanded="true"><span>Guru & Honor</span><i class="mg-chev">▾</i></button>
+          <div class="menu-group-items">
+            <div class="menu-item" data-page="teacher-attendance"><span class="icon"><i data-lucide="camera"></i></span> Absen Guru</div>
+            <div class="menu-item" data-page="riwayat-absen-saya"><span class="icon"><i data-lucide="history"></i></span> Riwayat Absen Saya</div>
+            <div class="menu-item" data-page="honor"><span class="icon"><i data-lucide="banknote"></i></span> Honor</div>
+          </div>
+        </div>
+        <div class="menu-group" data-group="laporan">
+          <button type="button" class="menu-group-title" aria-expanded="true"><span>Rekap & Laporan</span><i class="mg-chev">▾</i></button>
+          <div class="menu-group-items">
+            <div class="menu-item" data-page="rekap"><span class="icon"><i data-lucide="clipboard-list"></i></span> Rekap</div>
+            <div class="menu-item" data-page="rekap-nilai"><span class="icon"><i data-lucide="bar-chart-3"></i></span> Rekap Nilai</div>
+            <div class="menu-item" data-page="laporan"><span class="icon"><i data-lucide="file-bar-chart"></i></span> Laporan</div>
+            <div class="menu-item" data-page="infaq"><span class="icon"><i data-lucide="wallet"></i></span> Infaq</div>
+          </div>
+        </div>
+        <div class="menu-group" data-group="admin">
+          <button type="button" class="menu-group-title" aria-expanded="true"><span>Administrasi</span><i class="mg-chev">▾</i></button>
+          <div class="menu-group-items">
+            <div class="menu-item" data-page="surat"><span class="icon"><i data-lucide="file-text"></i></span> Surat & Ijin</div>
+            <div class="menu-item" data-page="promotion"><span class="icon"><i data-lucide="trending-up"></i></span> Kenaikan Kelas</div>
+            <div class="menu-item" data-page="alumni"><span class="icon"><i data-lucide="graduation-cap"></i></span> Alumni</div>
+            <div class="menu-item" data-page="user-management"><span class="icon"><i data-lucide="users"></i></span> Manajemen User</div>
+            <div class="menu-item" data-page="admin"><span class="icon"><i data-lucide="settings"></i></span> Admin</div>
+          </div>
+        </div>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -1493,14 +1522,14 @@
       <button class="bottom-nav-item" data-target-page="dashboard" aria-label="Beranda">
         <span class="bn-icon"><i data-lucide="layout-dashboard"></i></span><span>Beranda</span>
       </button>
-      <button class="bottom-nav-item" data-target-page="attendance" aria-label="Absensi">
+      <button class="bottom-nav-item" id="bnSlot2" data-target-page="attendance" aria-label="Absensi">
         <span class="bn-icon"><i data-lucide="calendar-check"></i></span><span>Absensi</span>
       </button>
       <button class="bottom-nav-center" id="bottomNavQR" aria-label="Absen QR">
         <span class="bottom-nav-center-circle"><i data-lucide="qr-code"></i></span>
         <span class="bottom-nav-center-label">Absen QR</span>
       </button>
-      <button class="bottom-nav-item" data-target-page="journal" aria-label="Jurnal Mengajar">
+      <button class="bottom-nav-item" id="bnSlot4" data-target-page="journal" aria-label="Jurnal Mengajar">
         <span class="bn-icon"><i data-lucide="notebook-pen"></i></span><span>Jurnal</span>
       </button>
       <button class="bottom-nav-item" id="bottomNavLainnya" aria-label="Menu lainnya">
@@ -1508,6 +1537,48 @@
       </button>
     </div>
   </nav>
+  <script>
+    // v16: menu sidebar dikelompokkan & bisa dilipat. Grup otomatis disembunyikan kalau semua menunya
+    // tidak boleh diakses peran yang sedang login; grup yang berisi halaman aktif otomatis terbuka.
+    (function() {
+      const nav = document.querySelector('.sidebar-menu');
+      if (!nav) return;
+      const KUNCI = 'ra_menu_tertutup';
+      let tertutup = [];
+      try { tertutup = JSON.parse(localStorage.getItem(KUNCI) || 'null') || ['data', 'laporan', 'admin']; } catch (e) { tertutup = ['data', 'laporan', 'admin']; }
+      const simpan = () => { try { localStorage.setItem(KUNCI, JSON.stringify(tertutup)); } catch (e) {} };
+      function terapkan() {
+        nav.querySelectorAll('.menu-group').forEach(g => {
+          const tutup = tertutup.includes(g.dataset.group);
+          g.classList.toggle('collapsed', tutup);
+          g.querySelector('.menu-group-title').setAttribute('aria-expanded', tutup ? 'false' : 'true');
+        });
+      }
+      nav.addEventListener('click', e => {
+        const t = e.target.closest('.menu-group-title');
+        if (!t) return;
+        const id = t.parentElement.dataset.group;
+        tertutup = tertutup.includes(id) ? tertutup.filter(x => x !== id) : tertutup.concat(id);
+        simpan(); terapkan();
+      });
+      let aktifTerakhir = '';
+      function sinkron() {
+        nav.querySelectorAll('.menu-group').forEach(g => {
+          const adaTampil = [...g.querySelectorAll('.menu-item')].some(i => i.style.display !== 'none');
+          g.style.display = adaTampil ? '' : 'none';
+        });
+        const aktif = nav.querySelector('.menu-item.active');
+        const kunci = aktif ? aktif.dataset.page : '';
+        if (kunci !== aktifTerakhir) {          // buka grup halaman aktif sekali saja saat pindah halaman
+          aktifTerakhir = kunci;
+          const g = aktif && aktif.closest('.menu-group');
+          if (g && tertutup.includes(g.dataset.group)) { tertutup = tertutup.filter(x => x !== g.dataset.group); simpan(); terapkan(); }
+        }
+      }
+      terapkan(); sinkron();
+      setInterval(sinkron, 800);
+    })();
+  </script>
   <script>
     // v15: tombol ⋮ di header HP membuka/menutup baris "tahun ajaran + Refresh/Update/Debug/Backup"
     (function() {
@@ -1629,7 +1700,35 @@
         return currentRole === 'admin' || !!currentUser?.teacher_id;
       }
 
+      // Pintasan menu bawah per peran. Beranda (kiri), tombol QR (tengah) dan Lainnya (kanan) tetap;
+      // dua pintasan di sisi (slot2 = kiri-tengah, slot4 = kanan-tengah) menyesuaikan pekerjaan tiap peran.
+      // Mau ganti? Cukup ubah daftar ini: page = nilai data-page di sidebar, icon = nama ikon Lucide.
+      const NAV_PER_PERAN = {
+        admin:      { slot2: { page: 'teacher-attendance', label: 'Absen Guru', icon: 'camera' },         slot4: { page: 'honor', label: 'Honor', icon: 'banknote' } },
+        kepsek:     { slot2: { page: 'rekap', label: 'Rekap', icon: 'clipboard-list' },                   slot4: { page: 'honor', label: 'Honor', icon: 'banknote' } },
+        wali_kelas: { slot2: { page: 'attendance', label: 'Absensi', icon: 'calendar-check' },             slot4: { page: 'journal', label: 'Jurnal', icon: 'notebook-pen' } },
+        guru:       { slot2: { page: 'journal', label: 'Jurnal', icon: 'notebook-pen' },                   slot4: { page: 'riwayat-absen-saya', label: 'Absen Saya', icon: 'history' } }
+      };
+      const NAV_BAWAAN = NAV_PER_PERAN.wali_kelas;
+      let navPeranTerpasang = null;
+      function terapkanNavPeran() {
+        const peran = (typeof currentRole !== 'undefined' && currentRole) || null;
+        if (!peran || peran === navPeranTerpasang) return;
+        const cfg = NAV_PER_PERAN[peran] || NAV_BAWAAN;
+        [['bnSlot2', cfg.slot2], ['bnSlot4', cfg.slot4]].forEach(([id, s]) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.dataset.targetPage = s.page;
+          el.setAttribute('aria-label', s.label);
+          el.classList.remove('active');
+          el.innerHTML = '<span class="bn-icon"><i data-lucide="' + s.icon + '"></i></span><span>' + s.label + '</span>';
+        });
+        navPeranTerpasang = peran;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+
       function perbaruiBottomNav() {
+        terapkanNavPeran();
         const appPage = document.getElementById('appPage');
         const sedangLogin = appPage && appPage.style.display !== 'none';
         bottomNav.classList.toggle('show', !!sedangLogin);
