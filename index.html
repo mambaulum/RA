@@ -88,18 +88,26 @@
 
     function tampilkanToastUpdate(workerBaru) {
       if (document.getElementById('updateToastSW')) return; // jangan dobel
+      // Di HP, menu bawah (Beranda/Absensi/QR/Jurnal/Lainnya) tidak boleh tertutup:
+      // toast diletakkan DI ATAS menu itu bila sedang tampil.
+      var nav = document.getElementById('bottomNav');
+      var navTampil = nav && nav.offsetHeight > 0 && getComputedStyle(nav).display !== 'none';
+      var bawah = (navTampil ? nav.offsetHeight + 14 : 20);
       const toast = document.createElement('div');
       toast.id = 'updateToastSW';
-      toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);' +
-        'background:#0f3b2c;color:#fff;padding:12px 16px;border-radius:14px;' +
-        'box-shadow:0 8px 24px rgba(0,0,0,0.25);z-index:999999;display:flex;' +
-        'align-items:center;gap:12px;font-family:Inter,sans-serif;font-size:13px;max-width:92vw;';
+      toast.setAttribute('role', 'alert');
+      toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);' +
+        'bottom:calc(' + bawah + 'px + env(safe-area-inset-bottom,0px));' +
+        'background:#0f3b2c;color:#fff;padding:8px 8px 8px 14px;border-radius:999px;' +
+        'box-shadow:0 8px 24px rgba(0,0,0,0.28);z-index:999999;display:flex;flex-wrap:nowrap;' +
+        'align-items:center;gap:10px;font-family:Inter,sans-serif;font-size:13px;' +
+        'width:max-content;max-width:calc(100vw - 24px);box-sizing:border-box;';
       toast.innerHTML =
-        '<span>🔄 Versi baru tersedia</span>' +
-        '<button id="btnRefreshSW" style="background:#a7f3d0;color:#0f3b2c;border:none;' +
-        'padding:6px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh</button>' +
-        '<button id="btnTutupToastSW" style="background:transparent;color:rgba(255,255,255,0.6);' +
-        'border:none;font-size:16px;cursor:pointer;padding:0 4px;">✕</button>';
+        '<span style="white-space:nowrap;font-weight:600;">🔄 Versi baru tersedia</span>' +
+        '<button id="btnRefreshSW" type="button" style="background:#a7f3d0;color:#0f3b2c;border:none;' +
+        'min-height:36px;padding:0 16px;border-radius:999px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;">Refresh</button>' +
+        '<button id="btnTutupToastSW" type="button" aria-label="Tutup" style="background:transparent;color:rgba(255,255,255,0.7);' +
+        'border:none;font-size:16px;cursor:pointer;width:36px;height:36px;border-radius:50%;line-height:1;">✕</button>';
       document.body.appendChild(toast);
 
       document.getElementById('btnRefreshSW').addEventListener('click', () => {
@@ -216,7 +224,7 @@
        supaya layar awal (splash) bisa tampil sebelum ~1,5 MB script selesai diunduh. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/main.css?v=10" />
 </head>
 <body>
 
@@ -1425,7 +1433,7 @@
   <script src="js/04-subjects-attendance-infaq.js?v=5"></script>
   <script src="js/05-grades.js?v=5"></script>
   <script src="js/06-anekdot-rapor-journal.js?v=5"></script>
-  <script src="js/07-teacher-attendance-qr.js?v=5"></script>
+  <script src="js/07-teacher-attendance-qr.js?v=6"></script>
   <script src="js/08-teachers-rekap.js?v=5"></script>
   <script src="js/09-honor-surat-jadwal.js?v=5"></script>
   <script src="js/10-kalender-promotion-alumni.js?v=5"></script>
