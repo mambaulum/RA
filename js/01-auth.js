@@ -84,6 +84,7 @@
         delete currentUser.pin; delete currentUser.pin_hash; delete currentUser.pin_salt; delete currentUser.pin_iter;
         currentRole = userData.role || 'guru';
         localStorage.setItem('user', JSON.stringify(currentUser));
+        try { sessionStorage.removeItem('ra_halaman_terakhir'); } catch (e) {}
         catatAktivitasSesi();
         mulaiPemantauSesi();
         afterLoginSuccess();
@@ -108,7 +109,16 @@
       document.getElementById('sidebarRole').textContent = currentUser.role || 'Guru';
       document.getElementById('sidebarAvatar').textContent = currentUser.nama ? currentUser.nama.charAt(0).toUpperCase() : '👤';
       updateMenuByRole(currentUser.role);
-      showPage('dashboard');
+      // Muat ulang (refresh) -> kembali ke halaman terakhir, bukan selalu Dashboard.
+      // Login baru selalu mulai dari Dashboard (kunci dihapus saat login/logout).
+      let halamanAwal = 'dashboard';
+      try {
+        const terakhir = sessionStorage.getItem('ra_halaman_terakhir');
+        const diizinkan = ROLE_PAGES[currentUser.role] || ROLE_PAGES.guru;
+        if (terakhir && document.getElementById('page-' + terakhir) &&
+            (terakhir === 'infaq' ? canAccessInfaq() : diizinkan.includes(terakhir))) halamanAwal = terakhir;
+      } catch (e) { /* pakai dashboard */ }
+      showPage(halamanAwal);
       // Load data guru default setelah login
       setTimeout(loadTeacherAttendance, 1000);
     }
@@ -196,6 +206,7 @@
 
     function logout() {
       currentUser = null; currentRole = null;
+      try { sessionStorage.removeItem('ra_halaman_terakhir'); } catch (e) {}
       localStorage.removeItem('user');
       localStorage.removeItem('user_aktif');
       const appPage = document.getElementById('appPage');
@@ -762,7 +773,7 @@
     function initLoginPage() {
       const loginHTML = `
       <div id="loginPage" style="display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;background:linear-gradient(135deg,#0f3b2c 0%,#1a5c3e 100%);padding:20px;">
-        <div style="background-color:white;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:14px 14px, calc(100% - 14px) 14px, 14px calc(100% - 14px), calc(100% - 14px) calc(100% - 14px);background-size:20px 20px;padding:44px 36px;border-radius:24px;max-width:480px;width:100%;box-shadow:0 0 0 2px #0f3b2c, 0 0 0 6px #fff, 0 0 0 7px #c9a227, 0 20px 60px rgba(0,0,0,0.3);text-align:center;">
+        <div class="login-card" style="background-color:white;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E'),url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Cpath d=%27M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z%27 fill=%27none%27 stroke=%27%23c9a227%27 stroke-width=%272%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:14px 14px, calc(100% - 14px) 14px, 14px calc(100% - 14px), calc(100% - 14px) calc(100% - 14px);background-size:20px 20px;padding:44px 36px;border-radius:24px;max-width:480px;width:100%;box-shadow:0 0 0 2px #0f3b2c, 0 0 0 6px #fff, 0 0 0 7px #c9a227, 0 20px 60px rgba(0,0,0,0.3);text-align:center;">
           <div style="width:100px;height:100px;border-radius:16px;background:linear-gradient(135deg,#0f3b2c,#1a5c3e);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;overflow:hidden;">
             <img src="logo/logo-lembaga.png" alt="Logo lembaga" style="width:92%;height:92%;object-fit:contain;" onerror="this.onerror=null; var p=this.parentElement; p.innerHTML='🧸'; p.style.fontSize='48px'; p.style.color='white';">
           </div>
@@ -778,7 +789,7 @@
           </div>
           <div style="margin-bottom:16px;text-align:left;">
             <label for="pinInput" style="display:block;font-weight:600;font-size:13px;color:#374151;margin-bottom:4px;">🔑 Masukkan PIN</label>
-            <input type="password" id="pinInput" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" style="width:100%;padding:14px;border:2px solid #e5e7eb;border-radius:12px;font-size:18px;text-align:center;letter-spacing:8px;background:white;" placeholder="••••••">
+            <input type="password" id="pinInput" class="login-pin" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" style="width:100%;padding:14px;border:2px solid #e5e7eb;border-radius:12px;font-size:18px;text-align:center;letter-spacing:8px;background:white;" placeholder="••••••">
           </div>
           <button type="submit" class="btn btn-primary" style="width:100%;" id="loginBtn">Login</button>
           </form>

@@ -436,7 +436,7 @@
               legend: { display: false },
               tooltip: { callbacks: { label: (ctx) => `Rp ${ctx.parsed.y.toLocaleString('id-ID')}` } }
             },
-            scales: { y: { beginAtZero: true, ticks: { callback: (v) => 'Rp ' + Number(v).toLocaleString('id-ID') } } }
+            scales: { y: { beginAtZero: true, suggestedMax: 10000, ticks: { maxTicksLimit: 5, callback: (v) => { v = Number(v); if (v >= 1000000) return 'Rp ' + (v / 1000000).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt'; if (v >= 1000) return 'Rp ' + (v / 1000).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' rb'; return 'Rp ' + v; } } }, x: { ticks: { maxRotation: 0, autoSkip: true } } }
           }
         });
       }).catch(error => console.error('Error rendering chart infaq:', error));
@@ -468,7 +468,7 @@
       tbody.innerHTML = filtered.map((r, idx) => {
         const weekCells = r.weekStatus.map((paid, i) => {
           const w = i + 1;
-          return `<td style="text-align:center;">
+          return `<td class="if-week" data-w="${w}" style="text-align:center;">
             <button class="status-choice" style="min-width:34px;${paid ? 'background:#dcfce7;border-color:#059669;color:#065f46;' : ''}" onclick="toggleInfaqMinggu('${escapeJs(r.id)}', ${w})" title="${paid ? 'Sudah setor, klik untuk batalkan' : 'Belum setor, klik untuk tandai lunas'}">
               ${paid ? '✅' : '⬜'}
             </button>
@@ -486,13 +486,13 @@
           ? `<button class="btn btn-success" style="padding:2px 8px;font-size:11px;" onclick="kirimReminderInfaqWA('${escapeJs(r.id)}')" title="${r.noWA ? 'Kirim reminder via WhatsApp' : 'No. WA belum diisi - klik untuk lihat caranya'}">📲 WA</button>`
           : '';
         return `<tr>
-          <td>${idx + 1}</td>
-          <td>${escapeHtml(r.nama)}${badgeKategori}</td>
-          <td>${escapeHtml(r.kelas)}</td>
+          <td class="if-no">${idx + 1}</td>
+          <td class="if-nama">${escapeHtml(r.nama)}${badgeKategori}</td>
+          <td class="if-kelas">${escapeHtml(r.kelas)}</td>
           ${weekCells}
-          <td>Rp ${r.totalSetor.toLocaleString('id-ID')}</td>
-          <td><span style="color:${statusColor};font-weight:600;">${statusLabel}</span></td>
-          <td>${tombolWA}</td>
+          <td class="if-total">Rp ${r.totalSetor.toLocaleString('id-ID')}</td>
+          <td class="if-status"><span style="color:${statusColor};font-weight:600;">${statusLabel}</span></td>
+          <td class="if-aksi">${tombolWA}</td>
         </tr>`;
       }).join('');
     }

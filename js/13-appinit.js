@@ -129,3 +129,32 @@
     // oleh __cobaMulaiApp() di atas, setelah DOM siap DAN auth anonim
     // selesai — lihat blok "FIREBASE ANONYMOUS AUTH" dekat firebaseConfig.
     document.addEventListener('DOMContentLoaded', () => { __domReady = true; __cobaMulaiApp(); });
+
+
+// ===== v23: beri data-label pada sel tabel agar bisa tampil sebagai kartu di HP =====
+(function () {
+  const HALAMAN = ['page-buku-induk', 'page-subjects', 'page-jadwal', 'page-alumni', 'page-user-management'];
+  function labeli(tabel) {
+    const ths = Array.from(tabel.querySelectorAll('thead th')).map(th => (th.textContent || '').trim());
+    tabel.querySelectorAll('tbody tr').forEach(tr => {
+      Array.from(tr.children).forEach((td, i) => {
+        if (td.hasAttribute('colspan')) return;
+        if (!td.hasAttribute('data-label')) td.setAttribute('data-label', ths[i] || '');
+      });
+    });
+  }
+  function pasang() {
+    HALAMAN.forEach(id => {
+      const hal = document.getElementById(id);
+      if (!hal) return;
+      hal.querySelectorAll('table').forEach(tabel => {
+        const tb = tabel.querySelector('tbody');
+        if (!tb || tb.dataset.labelObs) return;
+        tb.dataset.labelObs = '1';
+        new MutationObserver(() => labeli(tabel)).observe(tb, { childList: true });
+        labeli(tabel);
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pasang); else pasang();
+})();

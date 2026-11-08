@@ -23,6 +23,7 @@
         }
       }
       currentPage = page;
+      try { sessionStorage.setItem('ra_halaman_terakhir', page); } catch (e) { /* abaikan */ }
       document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
       const target = document.getElementById(`page-${page}`);
       if (target) target.style.display = 'block';
@@ -52,7 +53,8 @@
       startPageProgress();
       const loaderResult = loaders[page] ? loaders[page]() : null;
       Promise.resolve(loaderResult).finally(finishPageProgress);
-      if (window.innerWidth <= 768) toggleSidebar();
+      // Tutup sidebar di HP hanya bila sedang terbuka (dulu selalu di-toggle, jadi bisa malah terbuka saat halaman dimuat ulang).
+      if (window.innerWidth <= 768 && document.getElementById('sidebar')?.classList.contains('open')) toggleSidebar();
     }
 
     // ============================================================
@@ -223,7 +225,7 @@
           chartInstancesRegistry['chartTelatGuruBulanan'] = new Chart(canvasTelat.getContext('2d'), {
             type: 'bar',
             data: { labels, datasets: [{ label: 'Kejadian Telat', data: dataTelat, backgroundColor: '#dc2626', borderRadius: 4, maxBarThickness: 40 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, suggestedMax: 4, ticks: { precision: 0 } }, x: { ticks: { maxRotation: 0, autoSkip: true } } } }
           });
         }
 
@@ -260,6 +262,8 @@
           if (scopedStudents && !scopedStudents[studentId]) return;
           if (r.status === 'H') hadirCount++;
         });
+        // Hari tanpa data absensi sama sekali (Minggu/libur) dilewati, supaya garis tidak jatuh ke 0.
+        if (Object.keys(dayRecords).length === 0) continue;
         labels.push(`${d.getDate()}/${d.getMonth() + 1}`);
         dataHadir.push(hadirCount);
       }
@@ -283,7 +287,10 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 6 } },
+            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } }
+          }
         }
       });
     }
