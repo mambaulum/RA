@@ -224,7 +224,7 @@
        supaya layar awal (splash) bisa tampil sebelum ~1,5 MB script selesai diunduh. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles/main.css?v=19" />
+  <link rel="stylesheet" href="styles/main.css?v=20" />
 </head>
 <body>
 
@@ -341,6 +341,7 @@
             <div class="menu-item" data-page="anekdot"><span class="icon"><i data-lucide="sticky-note"></i></span> Catatan Anekdot</div>
             <div class="menu-item" data-page="rapor-narasi"><span class="icon"><i data-lucide="scroll-text"></i></span> Rapor Narasi</div>
             <div class="menu-item" data-page="journal"><span class="icon"><i data-lucide="notebook-pen"></i></span> Jurnal Mengajar</div>
+            <div class="menu-item" data-page="kebiasaan"><span class="icon"><i data-lucide="sunrise"></i></span> 7 Kebiasaan Anak</div>
           </div>
         </div>
         <div class="menu-group" data-group="guru">
@@ -943,6 +944,39 @@
       </div>
 
       <!-- ============================================================
+           PAGE: 7 KEBIASAAN ANAK INDONESIA HEBAT
+      ============================================================ -->
+      <div id="page-kebiasaan" class="page-content" style="display:none;">
+        <div class="card">
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">🌟 7 Kebiasaan Anak Indonesia Hebat</h3>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">Bangun pagi, beribadah, berolahraga, makan sehat dan bergizi, gemar belajar, bermasyarakat, tidur cepat. Catat dari buku catatan harian anak (diisi di rumah dan di sekolah).</p>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button class="btn btn-primary" id="kbTabHarian" onclick="kbGantiTab('harian')" style="flex:1;">📝 Catat Harian</button>
+            <button class="btn btn-soft" id="kbTabRekap" onclick="kbGantiTab('rekap')" style="flex:1;">📊 Rekap</button>
+          </div>
+          <div id="kbPanelHarian">
+            <div class="grid-3" style="margin-bottom:8px;">
+              <div><label class="label">Tanggal</label><input type="date" class="field" id="kbTanggal" onchange="kbRenderHarian()"></div>
+              <div><label class="label">Kelas</label><select class="field" id="kbKelas" onchange="kbRenderHarian()"></select></div>
+              <div style="grid-column:1/-1;"><input type="text" class="field" id="kbCari" placeholder="🔍 Cari nama siswa..." oninput="kbRenderHarian()"></div>
+            </div>
+            <div id="kbRingkasHarian" style="font-size:12px;color:#065f46;background:#ecfdf5;border-radius:8px;padding:6px 10px;margin-bottom:8px;"></div>
+            <div id="kbSemuaBar" class="kb-semua-bar"></div>
+            <div id="kbHarianList"></div>
+          </div>
+          <div id="kbPanelRekap" style="display:none;">
+            <div class="grid-3" style="margin-bottom:10px;">
+              <div><label class="label">Periode</label><select class="field" id="kbRekapMode" onchange="kbHitungRekap()"><option value="bulan">Bulanan</option><option value="smt1">Semester 1 (Jul–Des)</option><option value="smt2">Semester 2 (Jan–Jun)</option></select></div>
+              <div id="kbRekapBulanWrap"><label class="label">Bulan</label><input type="month" class="field" id="kbRekapBulan" onchange="kbHitungRekap()"></div>
+              <div><label class="label">Kelas</label><select class="field" id="kbRekapKelas" onchange="kbHitungRekap()"></select></div>
+            </div>
+            <div id="kbRekapHasil"></div>
+            <button class="btn btn-success" style="margin-top:12px;" onclick="kbCetakRekapPDF()">🖨️ Cetak Rekap (PDF)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
            PAGE: JOURNAL
       ============================================================ -->
       <div id="page-journal" class="page-content" style="display:none;">
@@ -1466,15 +1500,16 @@
   <script src="js/02-nav-dashboard.js?v=6"></script>
   <script src="js/03-students.js?v=5"></script>
   <script src="js/04-subjects-attendance-infaq.js?v=5"></script>
-  <script src="js/05-grades.js?v=5"></script>
+  <script src="js/05-grades.js?v=6"></script>
   <script src="js/06-anekdot-rapor-journal.js?v=5"></script>
-  <script src="js/07-teacher-attendance-qr.js?v=7"></script>
+  <script src="js/07-teacher-attendance-qr.js?v=8"></script>
   <script src="js/08-teachers-rekap.js?v=7"></script>
-  <script src="js/09-honor-surat-jadwal.js?v=7"></script>
+  <script src="js/09-honor-surat-jadwal.js?v=8"></script>
   <script src="js/10-kalender-promotion-alumni.js?v=5"></script>
   <script src="js/11-setting-laporan-user-admin.js?v=5"></script>
-  <script src="js/12-profil-tahunajaran.js?v=5"></script>
+  <script src="js/12-profil-tahunajaran.js?v=6"></script>
   <script src="js/13-appinit.js?v=5"></script>
+  <script src="js/14-kebiasaan.js?v=1"></script>
 
   <!-- Tombol mengambang (FAB) gaya WhatsApp - default: scroll ke atas.
        Hanya tampil di dalam appPage (setelah login) dan saat halaman

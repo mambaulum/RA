@@ -28,7 +28,7 @@
 // SENGAJA tidak pernah di-cache - data absensi/nilai/dll harus selalu live.
 // ============================================================
 
-const SW_VERSION = 'v19';
+const SW_VERSION = 'v20';
 // Awalan cache KHUSUS aplikasi RA. Cache Storage dipakai bersama oleh SEMUA aplikasi di alamat yang sama
 // (mis. mambaulum.github.io/RA dan mambaulum.github.io/MI), jadi nama harus unik per aplikasi
 // dan penghapusan cache lama hanya boleh menyentuh cache milik sendiri.
