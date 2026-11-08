@@ -581,11 +581,15 @@ body.dark-mode .pagination select { background: #1e293b; border-color: #334155; 
   .field, select.field, textarea.field { padding: 10px 12px !important; font-size: 16px !important; } /* tetap 16px, cegah zoom iOS */
   .label { font-size: 12px !important; }
 
-  .btn { padding: 10px 16px !important; font-size: 13px !important; min-height: 44px !important; width: 100%; }
-  .btn.btn-inline, .jadwal-actions .btn, .pagination .btn { width: auto; } /* tombol di baris sejajar tetap otomatis */
+  /* v10: tombol tidak lagi dipaksa 100% (membuat tombol sejajar di tabel/filter/header membengkak).
+     Hanya tombol aksi utama langsung di dalam kartu/modal yang selebar penuh. */
+  .btn { padding: 10px 16px !important; font-size: 13px !important; min-height: 44px !important; white-space: normal; line-height: 1.25; text-align: center; }
+  .card > .btn, .modal-box > .btn { width: 100%; }
 
-  table { font-size: 12px !important; display: block !important; overflow-x: auto !important; white-space: nowrap !important; -webkit-overflow-scrolling: touch !important; }
-  table th, table td { padding: 8px 10px !important; font-size: 11px !important; }
+  /* v10: tabel tetap tabel (digulir menyamping lewat pembungkusnya), teks 12px agar terbaca.
+     Tabel utama (Absensi, Siswa, Capaian) diubah jadi kartu di bagian 14 di bawah. */
+  table { font-size: 12px !important; }
+  table th, table td { padding: 8px 10px !important; font-size: 12px !important; }
 
   .status-choice { padding: 6px 12px !important; font-size: 12px !important; min-height: 40px !important; }
   .marquee-item { font-size: 13px !important; padding: 0 20px !important; }
@@ -618,10 +622,9 @@ body.dark-mode .pagination select { background: #1e293b; border-color: #334155; 
   .card { padding: 10px !important; border-radius: 14px !important; }
   .topbar .page-title { font-size: 14px !important; }
 
-  .status-bar { grid-template-columns: 1fr !important; }
   .modal-box { padding: 16px !important; margin: 8px !important; }
 
-  .toast { bottom: 10px !important; right: 10px !important; left: 10px !important; max-width: 100% !important; font-size: 13px !important; padding: 10px 16px !important; }
+  .toast { bottom: calc(84px + env(safe-area-inset-bottom)) !important; right: 10px !important; left: 10px !important; max-width: 100% !important; font-size: 13px !important; padding: 10px 16px !important; }
 
   .sidebar-header .logo-img { width: 60px; height: 60px; }
   .btn { font-size: 12px !important; padding: 10px 12px !important; }
@@ -643,4 +646,137 @@ body.dark-mode .pagination select { background: #1e293b; border-color: #334155; 
     background: revert;
     color: revert;
   }
+}
+
+
+/* ==========================================================
+   14. TAMPILAN HP v10 (tahap 1: aturan global, tahap 2: halaman
+       Absensi, Data Siswa, Capaian, Jurnal, Anekdot, Absen Guru)
+   Catatan: blok ini sengaja di paling akhir supaya menang atas
+   aturan lama di atas tanpa perlu menambah !important baru.
+   ========================================================== */
+
+/* Teks pengumuman berjalan: tepi memudar, berhenti saat disentuh, hormati "kurangi gerakan" */
+.marquee-container {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+}
+.marquee-container:active .marquee-content { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .marquee-content { animation: none !important; transform: none !important; white-space: normal; }
+}
+
+@media (max-width: 768px) {
+  /* overflow-x: clip (bukan hidden) agar elemen sticky di dalam halaman bisa menempel */
+  @supports (overflow: clip) { .main-content { overflow-x: clip; } }
+  /* tombol "ke atas" tidak menimpa menu bawah */
+  .fab-button { bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+
+  /* Modal jadi "lembar bawah" (bottom sheet): mudah dijangkau jempol, tombol tak terpotong */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-box {
+    margin: 0 !important; max-width: 100% !important; width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 92vh !important; max-height: 92dvh !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+  }
+  .modal-box .btn { flex: 1 1 auto; }
+
+  /* Kolom filter/pencarian: selebar layar (batas max-width inline hanya untuk desktop) */
+  #page-students .field, #page-anekdot .field, #page-journal .field,
+  #page-teacher-attendance .field, #page-riwayat-absen-saya .field { max-width: none !important; width: 100% !important; }
+  .pagination { gap: 8px; flex-wrap: wrap; }
+}
+
+@media (max-width: 640px) {
+  /* Header: tombol tidak melebar, muat 1-2 baris */
+  .topbar .topbar-right { gap: 6px !important; width: 100%; }
+  .topbar .topbar-right > div { display: contents !important; }
+  .topbar .topbar-right .btn { width: auto !important; min-width: 44px; padding: 8px 12px !important; }
+
+  /* Kartu status dashboard: tetap 2 kolom */
+  .status-bar { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .status-bar .status-item { min-width: 0; padding: 10px 12px; gap: 8px; }
+  .status-bar .status-icon { font-size: 22px; }
+  .status-bar .status-label { line-height: 1.25; }
+  .status-bar .status-value { font-size: 20px; }
+
+  /* Kelompok tombol di kepala halaman: 2 kolom rapi */
+  #page-students .card > div:first-child > div:last-child,
+  #page-teacher-attendance .card > div:first-child > div:last-child {
+    display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;
+  }
+
+  /* ---------- Tabel -> kartu (Absensi, Siswa, Capaian) ---------- */
+  #page-attendance table, #page-students table, #page-grades table { display: block !important; width: 100%; }
+  #page-attendance thead, #page-students thead, #page-grades thead { display: none; }
+  #page-attendance tbody, #page-students tbody, #page-grades tbody { display: flex; flex-direction: column; gap: 10px; }
+  #page-attendance tr, #page-students tr, #page-grades tr {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px;
+  }
+  #page-attendance td, #page-students td, #page-grades td {
+    display: block; border: 0 !important; padding: 0 !important; font-size: 13px !important; color: #4b5563;
+  }
+  #page-attendance td[colspan], #page-students td[colspan], #page-grades td[colspan] { width: 100%; text-align: center; order: 0 !important; }
+  #page-attendance td[colspan]::before, #page-students td[colspan]::before, #page-grades td[colspan]::before { content: none !important; }
+  body.dark-mode #page-attendance tr, body.dark-mode #page-students tr, body.dark-mode #page-grades tr { background: #1e293b; border-color: #334155; }
+  body.dark-mode #page-attendance td, body.dark-mode #page-students td, body.dark-mode #page-grades td { color: #cbd5e1; }
+
+  /* Absensi: nama besar, NIS/kelas kecil, 4 tombol status sama lebar, keterangan penuh */
+  #page-attendance td:nth-child(2) { order: 1; width: 100%; font-size: 15px !important; font-weight: 700; color: #111827; }
+  #page-attendance td:nth-child(1) { order: 2; font-size: 12px !important; }
+  #page-attendance td:nth-child(1)::before { content: "NIS "; color: #9ca3af; }
+  #page-attendance td:nth-child(3) { order: 3; font-size: 12px !important; }
+  #page-attendance td:nth-child(3)::before { content: "Kelas "; color: #9ca3af; }
+  #page-attendance td:nth-child(4) { order: 4; width: 100%; }
+  #page-attendance td:nth-child(4) > div { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 6px !important; width: 100%; }
+  #page-attendance .status-choice { width: 100%; justify-content: center; }
+  #page-attendance td:nth-child(5) { order: 5; width: 100%; }
+  #page-attendance td:nth-child(5) .field { width: 100% !important; font-size: 14px !important; }
+  body.dark-mode #page-attendance td:nth-child(2) { color: #f1f5f9; }
+
+  /* Bar aksi Absensi menempel di atas menu bawah */
+  #page-attendance .card { overflow: visible !important; }
+  #page-attendance .card > div:last-child {
+    position: sticky; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 20;
+    display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important;
+    margin: 12px -4px 0 !important; padding: 10px; background: rgba(255,255,255,0.96);
+    border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+  }
+  #page-attendance .card > div:last-child .btn:nth-child(2) { grid-column: 1 / -1; order: -1; }
+  body.dark-mode #page-attendance .card > div:last-child { background: rgba(30,41,59,0.96); border-color: #334155; }
+
+  /* Data Siswa */
+  #page-students td:nth-child(2) { order: 1; width: 100%; font-size: 15px !important; font-weight: 700; color: #111827; }
+  #page-students td:nth-child(1) { order: 2; font-size: 12px !important; }
+  #page-students td:nth-child(1)::before { content: "NIS "; color: #9ca3af; }
+  #page-students td:nth-child(3) { order: 3; font-size: 12px !important; }
+  #page-students td:nth-child(3)::before { content: "Kelas "; color: #9ca3af; }
+  #page-students td:nth-child(4) { order: 4; font-size: 12px !important; }
+  #page-students td:nth-child(4)::before { content: "JK "; color: #9ca3af; }
+  #page-students td:nth-child(5) { order: 5; width: 100%; font-size: 12px !important; }
+  #page-students td:nth-child(5)::before { content: "Orang tua: "; color: #9ca3af; }
+  #page-students td:nth-child(6) { order: 6; width: 100%; display: flex !important; gap: 8px; margin-top: 4px; }
+  #page-students td:nth-child(6) .btn { flex: 1 1 0; padding: 6px 8px !important; font-size: 15px !important; }
+  body.dark-mode #page-students td:nth-child(2) { color: #f1f5f9; }
+
+  /* Capaian perkembangan (riwayat) */
+  #page-grades td:nth-child(1) { order: 1; width: 100%; font-size: 15px !important; font-weight: 700; color: #111827; }
+  #page-grades td:nth-child(2) { order: 2; font-size: 12px !important; }
+  #page-grades td:nth-child(3) { order: 3; font-size: 12px !important; }
+  #page-grades td:nth-child(4) { order: 4; margin-left: auto; }
+  #page-grades td:nth-child(5) { order: 5; width: 100%; font-size: 11px !important; color: #9ca3af; }
+  #page-grades td:nth-child(5)::before { content: "Oleh "; }
+  #page-grades td:nth-child(6) { order: 6; width: 100%; display: flex !important; gap: 8px; }
+  #page-grades td:nth-child(6) .btn { flex: 1 1 0; padding: 6px 8px !important; }
+  body.dark-mode #page-grades td:nth-child(1) { color: #f1f5f9; }
+
+  /* Absen Guru: baris guru jadi kartu bertumpuk */
+  .teacher-attendance-item { flex-direction: column !important; align-items: stretch !important; padding: 12px !important; gap: 10px !important; }
+  .teacher-attendance-item > div:last-child { gap: 8px !important; }
+  .teacher-attendance-item > div:last-child .btn { flex: 1 1 auto; }
+
+  /* Jurnal & Anekdot: tombol hapus/aksi di dalam kartu tidak melebar */
+  #journalList .btn, #anekdotList .btn { width: auto; min-height: 40px !important; }
 }
