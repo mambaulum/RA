@@ -29,8 +29,12 @@
 // ============================================================
 
 const SW_VERSION = 'v15';
-const STATIC_CACHE = `simamba-static-${SW_VERSION}`;
-const SHELL_CACHE = `simamba-shell-${SW_VERSION}`;
+// Awalan cache KHUSUS aplikasi RA. Cache Storage dipakai bersama oleh SEMUA aplikasi di alamat yang sama
+// (mis. mambaulum.github.io/RA dan mambaulum.github.io/MI), jadi nama harus unik per aplikasi
+// dan penghapusan cache lama hanya boleh menyentuh cache milik sendiri.
+const CACHE_PREFIX = 'simamba-ra-';
+const STATIC_CACHE = `${CACHE_PREFIX}static-${SW_VERSION}`;
+const SHELL_CACHE = `${CACHE_PREFIX}shell-${SW_VERSION}`;
 const CURRENT_CACHES = [STATIC_CACHE, SHELL_CACHE];
 
 // Timeout untuk strategi network-first: kalau network lebih lambat dari
@@ -91,7 +95,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(key => !CURRENT_CACHES.includes(key)).map(key => {
+        keys.filter(key => key.startsWith(CACHE_PREFIX) && !CURRENT_CACHES.includes(key)).map(key => {
           console.log('SW: menghapus cache versi lama:', key);
           return caches.delete(key);
         })
