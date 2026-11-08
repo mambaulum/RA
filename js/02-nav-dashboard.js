@@ -31,7 +31,7 @@
       });
       const titles = {
         dashboard: 'Dashboard', profil: 'Profil RA', students: 'Data Siswa', subjects: 'Aspek Perkembangan',
-        attendance: 'Absensi', infaq: 'Infaq', grades: 'Nilai', anekdot: 'Catatan Anekdot', 'rapor-narasi': 'Rapor Narasi', journal: 'Jurnal Mengajar', 'teacher-attendance': 'Absen Guru', 'buku-induk': 'Buku Induk',
+        attendance: 'Absensi', infaq: 'Infaq', grades: 'Nilai', anekdot: 'Catatan Anekdot', 'rapor-narasi': 'Rapor Narasi', journal: 'Jurnal Mengajar', kebiasaan: '7 Kebiasaan Anak', 'teacher-attendance': 'Absen Guru', 'buku-induk': 'Buku Induk',
         'riwayat-absen-saya': 'Riwayat Absen Saya',
         rekap: 'Rekap', 'rekap-nilai': 'Rekap Nilai', honor: 'Honor', surat: 'Surat & Ijin',
         jadwal: 'Jadwal', 'kalender-akademik': 'Kalender Akademik', promotion: 'Kenaikan Kelas', alumni: 'Alumni', 'setting-jam': 'Setting Jam',
@@ -43,7 +43,7 @@
       }
       const loaders = {
         dashboard: loadDashboard, profil: loadProfil, students: loadStudents, subjects: loadSubjects,
-        attendance: loadAttendance, infaq: loadInfaq, grades: loadGrades, anekdot: loadAnekdot, 'rapor-narasi': loadRaporNarasi, journal: loadJournal, 'buku-induk': loadBukuInduk,
+        attendance: loadAttendance, infaq: loadInfaq, grades: loadGrades, anekdot: loadAnekdot, 'rapor-narasi': loadRaporNarasi, journal: loadJournal, kebiasaan: loadKebiasaan, 'buku-induk': loadBukuInduk,
         'teacher-attendance': loadTeacherAttendance, rekap: loadRekap, 'rekap-nilai': loadRekapNilai,
         'riwayat-absen-saya': loadRiwayatAbsenSaya,
         honor: loadHonor, surat: loadSurat, jadwal: loadJadwal, 'kalender-akademik': loadKalenderAkademik, promotion: loadPromotion, alumni: loadAlumni,

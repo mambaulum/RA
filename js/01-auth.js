@@ -119,16 +119,16 @@
     // supaya tidak bisa dilewati dengan memanggil showPage('...') langsung
     // dari console browser.
     const ROLE_PAGES = {
-      admin: ['dashboard', 'profil', 'students', 'buku-induk', 'subjects', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'teacher-attendance',
+      admin: ['dashboard', 'profil', 'students', 'buku-induk', 'subjects', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'kebiasaan', 'teacher-attendance',
         'rekap', 'rekap-nilai', 'honor', 'surat', 'jadwal', 'kalender-akademik', 'promotion', 'alumni', 'setting-jam', 'laporan', 'user-management', 'admin'
       ],
-      kepsek: ['dashboard', 'profil', 'students', 'buku-induk', 'subjects', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'teacher-attendance',
+      kepsek: ['dashboard', 'profil', 'students', 'buku-induk', 'subjects', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'kebiasaan', 'teacher-attendance',
         'rekap', 'rekap-nilai', 'honor', 'surat', 'jadwal', 'kalender-akademik', 'promotion', 'alumni', 'setting-jam', 'laporan'
       ],
-      wali_kelas: ['dashboard', 'profil', 'students', 'subjects', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'teacher-attendance',
+      wali_kelas: ['dashboard', 'profil', 'students', 'subjects', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'kebiasaan', 'teacher-attendance',
         'rekap', 'surat', 'jadwal', 'kalender-akademik'
       ],
-      guru: ['dashboard', 'profil', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'riwayat-absen-saya', 'surat', 'jadwal', 'kalender-akademik']
+      guru: ['dashboard', 'profil', 'attendance', 'grades', 'anekdot', 'rapor-narasi', 'journal', 'kebiasaan', 'riwayat-absen-saya', 'surat', 'jadwal', 'kalender-akademik']
     };
 
     // Infaq TIDAK memakai ROLE_PAGES biasa - ini per-AKUN (petugas yang
